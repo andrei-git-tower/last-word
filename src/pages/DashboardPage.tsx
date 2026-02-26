@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { Dashboard } from "@/components/Dashboard";
+import { InterviewChat } from "@/components/InterviewChat";
 import { toast } from "sonner";
 import type { Insight } from "@/lib/constants";
 
@@ -11,7 +12,11 @@ const APP_URL = import.meta.env.VITE_APP_URL ?? window.location.origin;
 
 export default function DashboardPage() {
   const { user } = useAuth();
-  const [tab, setTab] = useState<"insights" | "setup">("insights");
+  const [tab, setTab] = useState<"insights" | "interview" | "setup">("insights");
+  const [testInsights, setTestInsights] = useState<Insight[]>([]);
+  const handleTestInsight = useCallback((insight: Insight) => {
+    setTestInsights((prev) => [...prev, insight]);
+  }, []);
 
   const { data: insightsRows, isLoading: insightsLoading } = useQuery({
     queryKey: ["insights"],
@@ -90,7 +95,7 @@ export default function DashboardPage() {
 
         {/* Tabs */}
         <div className="flex gap-1 mb-5 bg-card rounded-lg border border-border p-1 w-fit">
-          {(["insights", "setup"] as const).map((t) => (
+          {([["insights", "Insights"], ["interview", "Test Interview"], ["setup", "Setup"]] as const).map(([t, label]) => (
             <button
               key={t}
               onClick={() => setTab(t)}
@@ -98,7 +103,7 @@ export default function DashboardPage() {
                 tab === t ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary"
               }`}
             >
-              {t === "insights" ? "Insights" : "Setup"}
+              {label}
             </button>
           ))}
         </div>
@@ -123,6 +128,18 @@ export default function DashboardPage() {
             </div>
           ) : (
             <Dashboard insights={insights} useSampleData={false} />
+          )
+        )}
+
+        {/* Test Interview tab */}
+        {tab === "interview" && (
+          account?.api_key ? (
+            <InterviewChat
+              onInsight={handleTestInsight}
+              apiKey={account.api_key}
+            />
+          ) : (
+            <div className="text-sm text-muted-foreground py-8 text-center">Loading...</div>
           )
         )}
 
