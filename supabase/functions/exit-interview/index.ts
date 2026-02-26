@@ -111,6 +111,7 @@ ${buildRetentionSection(retention_paths)}
 
 ## Ending the Conversation
 After 3-5 exchanges, wrap up naturally. End your final message with [INTERVIEW_COMPLETE].
+IMPORTANT: [INTERVIEW_COMPLETE] must ONLY appear in a message that contains no question. If your message ends with a question mark, do not include [INTERVIEW_COMPLETE] — ask your question first, wait for the answer, then wrap up.
 
 Then include a structured data block:
 
