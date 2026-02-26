@@ -223,7 +223,8 @@ serve(async (req) => {
     };
 
     const systemPrompt = buildSystemPrompt(config);
-    const { messages } = await req.json();
+    const { messages: rawMessages } = await req.json();
+    const messages = rawMessages.length > 0 ? rawMessages : [{ role: "user", content: "start" }];
 
     const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
     if (!ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is not configured");
