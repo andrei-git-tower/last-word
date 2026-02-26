@@ -141,11 +141,11 @@ function extractTextFromSSE(sseText: string): string {
   for (const line of sseText.split("\n")) {
     if (!line.startsWith("data: ")) continue;
     const jsonStr = line.slice(6).trim();
-    if (jsonStr === "[DONE]") continue;
     try {
       const parsed = JSON.parse(jsonStr);
-      const delta = parsed.choices?.[0]?.delta?.content;
-      if (delta) content += delta;
+      if (parsed.type === "content_block_delta" && parsed.delta?.type === "text_delta") {
+        content += parsed.delta.text;
+      }
     } catch {
       // ignore malformed chunks
     }
@@ -226,18 +226,21 @@ serve(async (req) => {
     const systemPrompt = buildSystemPrompt(config);
     const { messages } = await req.json();
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+    const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
+    if (!ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is not configured");
 
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const aiResponse = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "x-api-key": ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2-flash",
-        messages: [{ role: "system", content: systemPrompt }, ...messages],
+        model: "claude-haiku-4-5-20251001",
+        max_tokens: 1024,
+        system: systemPrompt,
+        messages,
         stream: true,
       }),
     });
