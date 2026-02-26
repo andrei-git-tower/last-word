@@ -208,19 +208,18 @@ serve(async (req) => {
       .eq("account_id", accountId)
       .single();
 
-    if (configError || !configRow) {
-      return new Response(JSON.stringify({ error: "No config found for this account. Set one up in your dashboard." }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const config: AccountConfig = {
+    const config: AccountConfig = configRow ? {
       product_name: configRow.product_name,
       product_description: configRow.product_description,
       competitors: configRow.competitors ?? [],
       plans: (configRow.plans as Plan[]) ?? [],
       retention_paths: (configRow.retention_paths as RetentionPathConfig) ?? {},
+    } : {
+      product_name: "our product",
+      product_description: "A SaaS product. No specific details configured yet.",
+      competitors: [],
+      plans: [],
+      retention_paths: { offboard_gracefully: { enabled: true } },
     };
 
     const systemPrompt = buildSystemPrompt(config);
