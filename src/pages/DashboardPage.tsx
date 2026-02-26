@@ -204,6 +204,32 @@ export default function DashboardPage() {
               </div>
             </div>
 
+            <div className="bg-card rounded-xl border border-border p-5">
+              <h3 className="font-semibold text-sm text-foreground mb-1">Integration Status</h3>
+              <p className="text-xs text-muted-foreground mb-4">
+                Shows whether Last Word has received a real API call from your cancellation page.
+              </p>
+              {insightsLoading ? (
+                <div className="text-sm text-muted-foreground">Checking...</div>
+              ) : (insightsRows ?? []).length > 0 ? (
+                <div className="flex items-center gap-3">
+                  <div className="w-2.5 h-2.5 rounded-full bg-green-500 shrink-0" />
+                  <div>
+                    <div className="text-sm font-semibold text-foreground">Active</div>
+                    <div className="text-xs text-muted-foreground">API calls are coming in successfully.</div>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center gap-3">
+                  <div className="w-2.5 h-2.5 rounded-full bg-muted-foreground shrink-0" />
+                  <div>
+                    <div className="text-sm font-semibold text-foreground">Not integrated yet</div>
+                    <div className="text-xs text-muted-foreground">Waiting for the first API call from your cancellation page.</div>
+                  </div>
+                </div>
+              )}
+            </div>
+
           </div>
         )}
 
