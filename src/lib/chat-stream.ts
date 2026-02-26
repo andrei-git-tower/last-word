@@ -46,7 +46,7 @@ export async function streamChat({
       textBuffer = textBuffer.slice(newlineIndex + 1);
 
       if (line.endsWith("\r")) line = line.slice(0, -1);
-      if (line.startsWith(":") || line.trim() === "") continue;
+      if (line.startsWith(":") || line.startsWith("event:") || line.trim() === "") continue;
       if (!line.startsWith("data: ")) continue;
 
       const jsonStr = line.slice(6).trim();
@@ -57,8 +57,10 @@ export async function streamChat({
 
       try {
         const parsed = JSON.parse(jsonStr);
-        const content = parsed.choices?.[0]?.delta?.content as string | undefined;
-        if (content) onDelta(content);
+        // Anthropic format
+        if (parsed.type === "content_block_delta" && parsed.delta?.type === "text_delta") {
+          onDelta(parsed.delta.text);
+        }
       } catch {
         textBuffer = line + "\n" + textBuffer;
         break;
@@ -70,14 +72,15 @@ export async function streamChat({
     for (let raw of textBuffer.split("\n")) {
       if (!raw) continue;
       if (raw.endsWith("\r")) raw = raw.slice(0, -1);
-      if (raw.startsWith(":") || raw.trim() === "") continue;
+      if (raw.startsWith(":") || raw.startsWith("event:") || raw.trim() === "") continue;
       if (!raw.startsWith("data: ")) continue;
       const jsonStr = raw.slice(6).trim();
       if (jsonStr === "[DONE]") continue;
       try {
         const parsed = JSON.parse(jsonStr);
-        const content = parsed.choices?.[0]?.delta?.content as string | undefined;
-        if (content) onDelta(content);
+        if (parsed.type === "content_block_delta" && parsed.delta?.type === "text_delta") {
+          onDelta(parsed.delta.text);
+        }
       } catch {
         /* ignore partial leftovers */
       }
