@@ -1,0 +1,276 @@
+import { useState, useRef, useEffect, useCallback } from "react";
+import { Send } from "lucide-react";
+import { streamChat } from "@/lib/chat-stream";
+import { parseInsights, cleanMessage, RETENTION_META } from "@/lib/constants";
+import { RetentionPathCard } from "./RetentionPathCard";
+import type { Message, Insight } from "@/lib/constants";
+import { toast } from "sonner";
+
+interface InterviewChatProps {
+  onInsight: (insight: Insight) => void;
+  apiKey: string;
+  autoStart?: boolean;
+}
+
+export function InterviewChat({ onInsight, apiKey, autoStart = false }: InterviewChatProps) {
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [complete, setComplete] = useState(false);
+  const [latestInsight, setLatestInsight] = useState<Insight | null>(null);
+  const [started, setStarted] = useState(false);
+  const chatRef = useRef<HTMLDivElement>(null);
+  const fullTextRef = useRef("");
+  const autoStarted = useRef(false);
+
+  useEffect(() => {
+    if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight;
+  }, [messages, loading]);
+
+  const startInterview = useCallback(() => {
+    setStarted(true);
+    setMessages([]);
+    setComplete(false);
+    setLatestInsight(null);
+    fullTextRef.current = "";
+
+    setLoading(true);
+    let assistantSoFar = "";
+
+    streamChat({
+      messages: [],
+      apiKey,
+      onDelta: (chunk) => {
+        assistantSoFar += chunk;
+        fullTextRef.current = assistantSoFar;
+        const cleaned = cleanMessage(assistantSoFar);
+        setMessages((prev) => {
+          const last = prev[prev.length - 1];
+          if (last?.role === "assistant") {
+            return prev.map((m, i) => (i === prev.length - 1 ? { ...m, content: cleaned } : m));
+          }
+          return [...prev, { role: "assistant", content: cleaned }];
+        });
+      },
+      onDone: () => {
+        setLoading(false);
+        const raw = fullTextRef.current;
+        if (raw.includes("[INTERVIEW_COMPLETE]")) {
+          setComplete(true);
+          const insight = parseInsights(raw);
+          if (insight) {
+            setLatestInsight(insight);
+            onInsight({ ...insight, date: "just now" });
+          }
+        }
+      },
+    }).catch((err) => {
+      setLoading(false);
+      toast.error(err.message || "Failed to connect to AI");
+      setMessages((prev) => [
+        ...prev,
+        { role: "assistant", content: "Hey there — before you go, we'd be curious to hear what's behind your decision to cancel. What's been on your mind?" },
+      ]);
+    });
+  }, [onInsight]);
+
+  useEffect(() => {
+    if (autoStart && !autoStarted.current) {
+      autoStarted.current = true;
+      startInterview();
+    }
+  }, [autoStart, startInterview]);
+
+  const send = useCallback(() => {
+    if (!input.trim() || loading || complete) return;
+    const msg = input.trim();
+    setInput("");
+
+    const userMsg: Message = { role: "user", content: msg };
+    setMessages((prev) => [...prev, userMsg]);
+
+    setLoading(true);
+    let assistantSoFar = "";
+    fullTextRef.current = "";
+
+    const allMessages = [...messages, userMsg].map((m) => ({
+      role: m.role,
+      content: m.content,
+    }));
+
+    streamChat({
+      messages: allMessages,
+      apiKey,
+      onDelta: (chunk) => {
+        assistantSoFar += chunk;
+        fullTextRef.current = assistantSoFar;
+        const cleaned = cleanMessage(assistantSoFar);
+        setMessages((prev) => {
+          const last = prev[prev.length - 1];
+          if (last?.role === "assistant") {
+            return prev.map((m, i) => (i === prev.length - 1 ? { ...m, content: cleaned } : m));
+          }
+          return [...prev, { role: "assistant", content: cleaned }];
+        });
+      },
+      onDone: () => {
+        setLoading(false);
+        const raw = fullTextRef.current;
+        if (raw.includes("[INTERVIEW_COMPLETE]")) {
+          setComplete(true);
+          const insight = parseInsights(raw);
+          if (insight) {
+            setLatestInsight(insight);
+            onInsight({ ...insight, date: "just now" });
+          }
+        }
+      },
+    }).catch((err) => {
+      setLoading(false);
+      toast.error(err.message || "Failed to send message");
+    });
+  }, [input, loading, complete, messages, onInsight]);
+
+  if (!started) {
+    return (
+      <div className="bg-card rounded-xl border border-border overflow-hidden">
+        <div className="p-12 text-center">
+          <div className="text-5xl mb-4">💬</div>
+          <h2 className="text-xl font-semibold text-foreground mb-2">Simulate a Tower Cancellation</h2>
+          <p className="text-muted-foreground mb-6 max-w-md mx-auto text-sm">
+            Play the role of a customer cancelling their Tower subscription. The AI will dig into the real reasons and offer a smart retention path — never a discount.
+          </p>
+          <div className="flex flex-wrap gap-2 justify-center mb-6">
+            {["Solo dev, too pricey", "Switching to GitKraken", "Too many crashes", "Budget cuts", "Team never adopted it"].map((p) => (
+              <span key={p} className="text-xs bg-secondary text-muted-foreground px-3 py-1.5 rounded-full">
+                try: &ldquo;{p}&rdquo;
+              </span>
+            ))}
+          </div>
+          <button
+            onClick={startInterview}
+            className="px-6 py-3 bg-primary text-primary-foreground rounded-lg font-medium hover:opacity-90 transition-opacity"
+          >
+            Start Exit Interview
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-card rounded-xl border border-border overflow-hidden">
+      <div ref={chatRef} className="h-96 overflow-y-auto p-5 space-y-4">
+        {messages.map((m, i) => (
+          <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
+            <div
+              className={`max-w-xs sm:max-w-sm rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
+                m.role === "user" ? "chat-bubble-user" : "chat-bubble-ai"
+              }`}
+            >
+              {m.content}
+            </div>
+          </div>
+        ))}
+        {loading && messages[messages.length - 1]?.role !== "assistant" && (
+          <div className="flex justify-start">
+            <div className="bg-secondary rounded-2xl px-4 py-3 text-sm text-muted-foreground flex gap-1">
+              <span className="animate-bounce" style={{ animationDelay: "0ms" }}>·</span>
+              <span className="animate-bounce" style={{ animationDelay: "150ms" }}>·</span>
+              <span className="animate-bounce" style={{ animationDelay: "300ms" }}>·</span>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {complete && latestInsight && (
+        <div className="mx-4 mb-2 space-y-2">
+          <div className="p-4 bg-teal-accent-light border border-teal-accent rounded-xl">
+            <div className="text-xs font-semibold text-teal-accent-foreground mb-2 uppercase tracking-wide">
+              Extracted Insight
+            </div>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm">
+              <div>
+                <span className="text-muted-foreground">Surface:</span>{" "}
+                <span className="font-medium">{latestInsight.surface_reason}</span>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Category:</span>{" "}
+                <span className="font-medium">{latestInsight.category}</span>
+              </div>
+              <div className="col-span-2">
+                <span className="text-muted-foreground">Deep reasons:</span>{" "}
+                <span className="font-medium">{latestInsight.deep_reasons?.join(", ")}</span>
+              </div>
+              {latestInsight.competitor && (
+                <div>
+                  <span className="text-muted-foreground">Competitor:</span>{" "}
+                  <span className="font-medium text-red-accent">{latestInsight.competitor}</span>
+                </div>
+              )}
+              {latestInsight.feature_gaps?.length > 0 && (
+                <div>
+                  <span className="text-muted-foreground">Gaps:</span>{" "}
+                  <span className="font-medium">{latestInsight.feature_gaps.join(", ")}</span>
+                </div>
+              )}
+              <div className="col-span-2">
+                <span className="text-muted-foreground">Salvageable:</span>{" "}
+                <span className={`font-semibold ${latestInsight.salvageable ? "text-teal-accent" : "text-muted-foreground"}`}>
+                  {latestInsight.salvageable ? "Yes ✓" : "No"}
+                </span>
+              </div>
+            </div>
+          </div>
+          {latestInsight.retention_path && (
+            <div
+              className={`p-4 rounded-xl border-2 ${
+                RETENTION_META[latestInsight.retention_path]?.color || "bg-secondary text-muted-foreground border-border"
+              }`}
+            >
+              <div className="text-xs font-semibold uppercase tracking-wide mb-1 opacity-70">Retention Path Triggered</div>
+              <div className="flex items-center gap-2">
+                <span className="text-xl">{RETENTION_META[latestInsight.retention_path]?.icon}</span>
+                <div>
+                  <div className="font-semibold text-sm">{RETENTION_META[latestInsight.retention_path]?.label}</div>
+                  <div className="text-xs opacity-80">{RETENTION_META[latestInsight.retention_path]?.desc}</div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className="p-4 border-t border-border">
+        {complete ? (
+          <div className="flex gap-2">
+            <button
+              onClick={startInterview}
+              className="flex-1 py-3 bg-primary text-primary-foreground rounded-lg font-medium hover:opacity-90 transition-opacity text-sm"
+            >
+              Start Another Interview
+            </button>
+          </div>
+        ) : (
+          <div className="flex gap-2">
+            <input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && send()}
+              placeholder="Respond as the cancelling customer..."
+              className="flex-1 border border-border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring bg-card text-foreground placeholder:text-muted-foreground"
+              disabled={loading}
+            />
+            <button
+              onClick={send}
+              disabled={loading || !input.trim()}
+              className="px-4 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:opacity-90 disabled:opacity-40 transition-opacity"
+            >
+              <Send className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

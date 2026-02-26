@@ -1,72 +1,108 @@
-# Concept Overview
+# Last Word — Product Concept
 
 ---
 
-### Goal(s)
+## What This Is
 
-- Replace our static cancellation survey with an AI conversation that surfaces the real reasons customers leave
-- Extract structured, actionable insights from every cancellation and cluster them into patterns
-- Route customers to smart retention paths based on their actual problem — no blanket discounts
+A configurable, embeddable exit interview widget for SaaS products. You drop a script tag into your cancellation flow, it pops up a short AI conversation when a user hits cancel, surfaces the real reason they're leaving, routes them to the right retention path, and saves the insight to a dashboard you can review later.
+
+The core insight: cancellation surveys are broken. Customers pick the first option, skip the text field, and you learn nothing. A short AI conversation — 3–5 exchanges — gets the real story.
+
+---
 
 ## Problem Statement
 
-<aside>
-💬 What problem are you trying to solve and why is this important?
-
-Our current exit survey gives us almost zero actionable signal. Customers pick "too expensive," skip the text fields, and we learn almost nothing. We're losing salvageable customers because we can't respond to their real issues in the moment.
-
-**
-
-</aside>
-
-## Summary
-
-An AI agent replaces the "Help Us Get Better" form with a short (3–5 exchange) conversation. It digs past surface reasons, extracts structured data (category, deep reasons, competitor, feature gaps, key quote, salvageability), and routes each customer to the right retention path. Insights feed a dashboard that shows churn patterns over time.
-
-**Retention paths (never a discount):**
-
-| Path | Trigger | Offer | Notes |
-| --- | --- | --- | --- |
-| Pause Auto-Renewal | Temporary budget issue, taking a break | Pause renewal — they keep access through current billing cycle  | perhaps redundant as they can do this themselves |
-| Downgrade Pro→Basic  | Only uses basic features, price mismatch | lower plan  |  |
-| Fix & Follow Up | Specific bug or performance issue | Eng ticket + personal follow-up |  |
-| Early Access | Leaving for a competitor feature | Preview of upcoming feature | TAKE OUT  |
-| Concierge Onboarding | Team never properly adopted | Free team onboarding session  | need to set guidelines here!!! Must be multi seat account  |
-| Graceful Offboard | Unsolvable (company closing, career change) | Thank warmly, no save attempt |  |
-
-Note: Cause we already offer pause (auto-renewal pause with access through current cycle)- the AI should surface this option contextually when relevant, not as a blanket offer.
-
-# Concept Details
+Exit surveys give companies almost zero actionable signal. Customers pick "too expensive," skip the text fields, and the company learns nothing. Salvageable customers leave because nobody responded to their actual problem. The data that does come back is unstructured, uncategorized, and impossible to act on at scale.
 
 ---
 
-## Audience
+## What It Does
 
-- Us— Product (feature gaps, competitor intel), Pricing (tier demand signals), Support (reliability issues, churn drivers, save rates).
+1. **Intercepts cancellation** — when a user clicks cancel in a SaaS product, the widget appears
+2. **Runs a short AI interview** — 3–5 exchanges, digs past the surface reason to the real one
+3. **Extracts structured insight** — category, deep reasons, sentiment, competitor mentions, feature gaps, salvageability
+4. **Routes to a retention path** — a relevant, non-manipulative offer based on what the customer actually said
+5. **Saves to a dashboard** — the SaaS team can see patterns, competitor intel, feature gap clusters, save rates
 
-## Deliverables
+---
 
-- AI conversation agent — interview flow, system prompt, tone, retention path routing
-- Insights dashboard — cancellation categories, retention path effectiveness, competitor mentions, feature gaps, save rates
-- Cancellation flow integration — replace static survey with conversational UI
-- Retention path backends — pause surfacing, downgrade/waitlist, eng ticket routing, onboarding scheduling
-- Weekly/Monthly reporting — top churn themes, spike alerts
+## Target Customer
 
-## Stakeholders or Team members
+Small-to-medium SaaS companies with real cancellation volume — enough that the dashboard becomes valuable, not so large that they need enterprise compliance and SSO. Founders or product people who care about churn and want signal they can actually act on.
 
-## Timeline
+---
 
- **
+## Business Rules
 
-- Weeks 1–2: Finalize prompt, tone, retention paths. Internal testing with prototype.
-- Weeks 3–4: Build cancellation flow integration + basic dashboard.
-- Weeks 5–6: Retention path backends.
-- Weeks 7–8: Soft launch (10–20% of cancellations, A/B vs current survey).
-- Week 9+: Full rollout, iterate based on real data.
+### The Interview
+
+- 3–5 exchanges, then wrap up
+- Tone: casual, human, never corporate. No filler phrases.
+- Never defensive. Never offer a discount.
+- Go deeper on vague answers — "too expensive", "not using it", "found something better" always have a real story behind them
+
+### Retention Paths
+
+The retention path is chosen by the AI based on what the customer says. It is configured per account — each SaaS has different offers and triggers.
+
+| Path | Trigger | What Happens |
+|---|---|---|
+| Pause | Temporary issue — budget, break, project gap | Surface the pause option (if the product has one) |
+| Downgrade | Over-provisioned on tier, price mismatch | Suggest a lighter plan |
+| Fix & Follow Up | Specific bug or performance complaint | Acknowledge, promise a ticket and personal follow-up |
+| Concierge Onboarding | Team never properly adopted the product | Offer a free onboarding session (multi-seat only) |
+| Graceful Offboard | Unsolvable — company closing, career change, genuinely happy elsewhere | Thank warmly, no save attempt |
+
+Rules:
+- **Never offer a discount** — discounts train customers to cancel to get one
+- **Never block the cancel** — the interview is optional, the cancellation always goes through
+- **Only offer Concierge Onboarding to multi-seat accounts**
+- Retention path offers should be configured by the account owner, not hardcoded
+
+### Insights Extracted Per Conversation
+
+- Surface reason (what they said first)
+- Deep reasons (what the AI uncovered)
+- Sentiment
+- Salvageable (boolean)
+- Key quote (most revealing thing they said)
+- Category: `pricing | product_fit | competition | support | reliability | lifecycle | other`
+- Competitor mentioned (if any)
+- Feature gaps mentioned
+- Usage duration
+- Retention path triggered
+- Whether the customer accepted the offer
+
+---
+
+## What's In Scope
+
+- AI interview engine with configurable system prompt
+- Per-account config: product name, competitors, pricing tiers, retention paths and their triggers/copy
+- API key auth — one key per account, goes in the script tag
+- Insights persistence — every completed interview saved to the account's dashboard
+- Embeddable widget — drop a script tag, it works
+- Basic dashboard — cancellation categories, save rates, competitor mentions, feature gaps, recent conversations
+
+## What's Out of Scope (for now)
+
+- Billing infrastructure
+- Team roles or multi-user accounts
+- Webhooks or external integrations
+- Onboarding flow beyond "here's your script tag and API key"
+- A/B testing infrastructure
+
+---
 
 ## Risks
 
-- Customers find it intrusive — Keep to 3–5 exchanges, make it skippable, A/B test completion rates.
-- AI goes off-brand — Strong prompt guardrails, log all conversations during soft launch.
-- API failure blocks cancellation — Graceful fallback (single open-text question), never block the cancel action.
-- Privacy — Customers may share sensitive info. Define data retention policies, ensure GDPR compliance for EU users.
+- **Customers find it intrusive** — Keep to 3–5 exchanges, make it skippable, never block the cancel
+- **AI goes off-brand** — Config schema must constrain tone and offer types; log all conversations early
+- **API failure blocks cancellation** — Widget must have a graceful fallback and never block the cancel action
+- **Config is too open-ended** — Schema needs guardrails so it can't produce incoherent AI behavior; test against edge cases before shipping
+
+---
+
+## Success Looks Like
+
+A founder drops the script tag in, configures their product in 15 minutes, and within a week has enough cancellation data to identify their top churn driver — something they didn't know before. They save at least one customer they would have lost.
