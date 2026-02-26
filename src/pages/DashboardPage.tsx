@@ -216,7 +216,9 @@ export default function DashboardPage() {
                   <div className="w-2.5 h-2.5 rounded-full bg-green-500 shrink-0" />
                   <div>
                     <div className="text-sm font-semibold text-foreground">Active</div>
-                    <div className="text-xs text-muted-foreground">API calls are coming in successfully.</div>
+                    <div className="text-xs text-muted-foreground">
+                      Last call received {formatDistanceToNow(new Date(insightsRows![0].created_at), { addSuffix: true })}.
+                    </div>
                   </div>
                 </div>
               ) : (
