@@ -12,7 +12,7 @@ const APP_URL = import.meta.env.VITE_APP_URL ?? window.location.origin;
 
 export default function DashboardPage() {
   const { user } = useAuth();
-  const [tab, setTab] = useState<"insights" | "interview" | "setup">("insights");
+  const [tab, setTab] = useState<"insights" | "interview" | "setup">("interview");
   const [testInsights, setTestInsights] = useState<Insight[]>([]);
   const handleTestInsight = useCallback((insight: Insight) => {
     setTestInsights((prev) => [...prev, insight]);
@@ -95,7 +95,7 @@ export default function DashboardPage() {
 
         {/* Tabs */}
         <div className="flex gap-1 mb-5 bg-card rounded-lg border border-border p-1 w-fit">
-          {([["insights", "Insights"], ["interview", "Test Interview"], ["setup", "Setup"]] as const).map(([t, label]) => (
+          {([["interview", "Test Interview"], ["insights", "Insights"], ["setup", "Setup"]] as const).map(([t, label]) => (
             <button
               key={t}
               onClick={() => setTab(t)}
