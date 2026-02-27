@@ -6,12 +6,13 @@ import { useAuth } from "@/hooks/use-auth";
 import { Dashboard } from "@/components/Dashboard";
 import { InterviewChat } from "@/components/InterviewChat";
 import { SettingsPage } from "@/components/SettingsPage";
+import { BrandingPage } from "@/components/BrandingPage";
 import { toast } from "sonner";
 import type { Insight } from "@/lib/constants";
 
 const APP_URL = import.meta.env.VITE_APP_URL ?? window.location.origin;
 
-type Tab = "insights" | "interview" | "setup" | "settings";
+type Tab = "insights" | "interview" | "setup" | "settings" | "branding";
 
 const NAV_ITEMS = [
   {
@@ -43,6 +44,17 @@ const NAV_ITEMS = [
     ),
   },
   {
+    id: "branding",
+    label: "Branding",
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="10" />
+        <path d="M12 2a14.5 14.5 0 0 0 0 20A14.5 14.5 0 0 0 12 2" />
+        <path d="M2 12h20" />
+      </svg>
+    ),
+  },
+  {
     id: "settings",
     label: "Settings",
     icon: (
@@ -58,6 +70,7 @@ const PAGE_TITLES: Record<Tab, { title: string; description: string }> = {
   insights: { title: "Insights", description: "Understand why customers are leaving and how to save them." },
   interview: { title: "Test Interview", description: "Preview the exit interview your customers will experience." },
   setup: { title: "Setup", description: "Install the widget and configure your integration." },
+  branding: { title: "Branding", description: "Scrape your website to tailor the interview experience to your brand." },
   settings: { title: "Settings", description: "Manage competitors and other account preferences." },
 };
 
@@ -252,6 +265,9 @@ export default function DashboardPage() {
               </div>
             )
           )}
+
+          {/* Branding tab */}
+          {tab === "branding" && <BrandingPage apiKey={apiKey} />}
 
           {/* Settings tab */}
           {tab === "settings" && <SettingsPage />}

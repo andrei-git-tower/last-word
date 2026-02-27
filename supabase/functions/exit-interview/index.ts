@@ -30,6 +30,7 @@ interface AccountConfig {
   retention_paths: RetentionPathConfig;
   min_exchanges: number;
   max_exchanges: number;
+  brand_prompt: string;
 }
 
 // --- Prompt builder ---
@@ -75,6 +76,7 @@ function buildSystemPrompt(config: AccountConfig, userTurns: number): string {
     retention_paths,
     min_exchanges,
     max_exchanges,
+    brand_prompt,
   } = config;
 
   const competitorList =
@@ -96,7 +98,13 @@ function buildSystemPrompt(config: AccountConfig, userTurns: number): string {
 - Turn policy: you may continue probing OR wrap up if you already have enough signal.
 - If you choose to continue, ask exactly one follow-up question.`;
 
-  return `You are a friendly exit interview AI for ${product_name}. Your job is to understand WHY a customer is cancelling — not the surface reason, but the real story.
+  const brandVoiceSection = brand_prompt
+    ? `You are an expert copywriter. Always follow these brand guidelines: ${brand_prompt}`
+    : "You are an expert copywriter. Keep the tone casual and human — like a quick Slack message, not a corporate email.";
+
+  return `${brandVoiceSection}
+
+You are a friendly exit interview AI for ${product_name}. Your job is to understand WHY a customer is cancelling — not the surface reason, but the real story.
 
 ## About ${product_name}
 ${product_description}
@@ -260,6 +268,7 @@ serve(async (req) => {
       retention_paths: (configRow.retention_paths as RetentionPathConfig) ?? {},
       min_exchanges: clampExchangeLimit(configRow.min_exchanges, 3),
       max_exchanges: clampExchangeLimit(configRow.max_exchanges, 5),
+      brand_prompt: configRow.brand_prompt ?? "",
     } : {
       product_name: "our product",
       product_description: "A SaaS product. No specific details configured yet.",
@@ -268,6 +277,7 @@ serve(async (req) => {
       retention_paths: { offboard_gracefully: { enabled: true } },
       min_exchanges: 3,
       max_exchanges: 5,
+      brand_prompt: "",
     };
 
     if (config.min_exchanges > config.max_exchanges) {

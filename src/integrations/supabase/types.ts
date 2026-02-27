@@ -44,6 +44,7 @@ export type Database = {
           competitors: string[]
           plans: Json
           retention_paths: Json
+          brand_prompt: string
           updated_at: string
         }
         Insert: {
@@ -54,6 +55,7 @@ export type Database = {
           competitors?: string[]
           plans?: Json
           retention_paths?: Json
+          brand_prompt?: string
           updated_at?: string
         }
         Update: {
@@ -64,6 +66,7 @@ export type Database = {
           competitors?: string[]
           plans?: Json
           retention_paths?: Json
+          brand_prompt?: string
           updated_at?: string
         }
         Relationships: []
