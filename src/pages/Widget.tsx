@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { InterviewChat } from "@/components/InterviewChat";
 import { SurveyChat } from "@/components/SurveyChat";
+import { TypeformChat } from "@/components/TypeformChat";
 import type { Insight } from "@/lib/constants";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
@@ -14,7 +15,7 @@ interface WidgetConfig {
   brand_logo_url: string;
   brand_name: string;
   widget_subtitle: string;
-  widget_style: "chat" | "survey";
+  widget_style: "chat" | "survey" | "typeform";
 }
 
 export default function Widget() {
@@ -91,9 +92,21 @@ export default function Widget() {
         </div>
       </div>
 
-      {/* Chat / Survey */}
-      <div className="flex-1 min-h-0 overflow-hidden" style={{ padding: "16px 20px 20px" }}>
-        {config?.widget_style === "survey" ? (
+      {/* Chat / Survey / Typeform */}
+      <div
+        className="flex-1 min-h-0 overflow-hidden"
+        style={config?.widget_style === "typeform" ? undefined : { padding: "16px 20px 20px" }}
+      >
+        {config?.widget_style === "typeform" ? (
+          <TypeformChat
+            onInsight={handleInsight}
+            apiKey={apiKey}
+            autoStart
+            primaryColor={primaryColor}
+            buttonColor={buttonColor}
+            fontFamily={fontFamily}
+          />
+        ) : config?.widget_style === "survey" ? (
           <SurveyChat
             onInsight={handleInsight}
             apiKey={apiKey}

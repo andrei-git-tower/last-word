@@ -283,7 +283,7 @@ export function SettingsPage() {
   // Branding state
   const [productName, setProductName] = useState("");
   const [widgetSubtitle, setWidgetSubtitle] = useState("");
-  const [widgetStyle, setWidgetStyle] = useState<"chat" | "survey">("chat");
+  const [widgetStyle, setWidgetStyle] = useState<"chat" | "survey" | "typeform">("chat");
   const [brandPrimaryColor, setBrandPrimaryColor] = useState("");
   const [brandButtonColor, setBrandButtonColor] = useState("");
   const [brandFont, setBrandFont] = useState("");
@@ -322,7 +322,7 @@ export function SettingsPage() {
     setMaxExchangesInput(String(config.max_exchanges ?? DEFAULT_MAX_EXCHANGES));
     setProductName(config.product_name ?? "");
     setWidgetSubtitle((config as { widget_subtitle?: string }).widget_subtitle ?? "");
-    setWidgetStyle(((config as { widget_style?: string }).widget_style as "chat" | "survey") ?? "chat");
+    setWidgetStyle(((config as { widget_style?: string }).widget_style as "chat" | "survey" | "typeform") ?? "chat");
     setBrandPrimaryColor(config.brand_primary_color ?? "");
     setBrandButtonColor(config.brand_button_color ?? "");
     setBrandFont(config.brand_font ?? "");
@@ -521,21 +521,23 @@ export function SettingsPage() {
             <div>
               <label className="text-xs font-medium text-muted-foreground mb-1 block">Widget style</label>
               <div className="flex gap-2">
-                {(["chat", "survey"] as const).map((style) => (
+                {([
+                  { value: "chat",     label: "Chat",     hint: "Bubble-style"   },
+                  { value: "survey",   label: "Survey",   hint: "Form-style"     },
+                  { value: "typeform", label: "Typeform", hint: "Card animated"  },
+                ] as const).map(({ value, label, hint }) => (
                   <button
-                    key={style}
+                    key={value}
                     type="button"
-                    onClick={() => setWidgetStyle(style)}
+                    onClick={() => setWidgetStyle(value)}
                     className={`px-4 py-2 text-sm rounded-lg border transition-colors ${
-                      widgetStyle === style
+                      widgetStyle === value
                         ? "border-primary bg-primary text-primary-foreground"
                         : "border-border bg-background text-muted-foreground hover:text-foreground"
                     }`}
                   >
-                    {style === "chat" ? "Chat" : "Survey"}
-                    <span className="ml-1.5 text-xs opacity-70">
-                      {style === "chat" ? "Bubble-style" : "Form-style"}
-                    </span>
+                    {label}
+                    <span className="ml-1.5 text-xs opacity-70">{hint}</span>
                   </button>
                 ))}
               </div>
