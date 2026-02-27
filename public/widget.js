@@ -92,8 +92,14 @@
 
   // Close when interview completes
   window.addEventListener("message", function (e) {
-    if (e.data && e.data.type === "lastword:done") {
-      close();
+    if (e.data && e.data.type === "lastword:complete") {
+      // Fire a host-page event so the customer can react (e.g. proceed with cancellation)
+      try {
+        window.dispatchEvent(
+          new CustomEvent("lastword:complete", { detail: e.data.insight })
+        );
+      } catch (_) {}
+      setTimeout(close, 1800);
     }
   });
 

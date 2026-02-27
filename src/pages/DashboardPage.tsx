@@ -195,6 +195,7 @@ export default function DashboardPage() {
   const apiKey = account?.api_key ?? "";
   const scriptTag = `<script src="${APP_URL}/widget.js" data-api-key="${apiKey}"></script>`;
   const triggerSnippet = `document.getElementById('cancel-btn').addEventListener('click', () => {\n  window.LastWord.open();\n});`;
+  const userContextSnippet = `window.LastWord.open({\n  email:       currentUser.email,\n  plan:        currentUser.planName,   // e.g. "pro"\n  account_age: currentUser.daysOld,    // days since signup\n  seats:       currentUser.seats,      // number of seats\n  mrr:         currentUser.mrr,        // monthly spend in USD\n});`;
 
   const { title, description } = PAGE_TITLES[tab];
 
@@ -433,6 +434,28 @@ export default function DashboardPage() {
                     <pre className="text-xs bg-secondary rounded-lg px-4 py-3 font-mono text-foreground overflow-x-auto">
                       {triggerSnippet}
                     </pre>
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <div>
+                        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">3. Pass customer context</span>
+                        <span className="ml-2 text-xs text-muted-foreground">(recommended)</span>
+                      </div>
+                      <button
+                        onClick={() => copy(userContextSnippet, "User context snippet")}
+                        className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        Copy
+                      </button>
+                    </div>
+                    <pre className="text-xs bg-secondary rounded-lg px-4 py-3 font-mono text-foreground overflow-x-auto">
+                      {userContextSnippet}
+                    </pre>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Passing context lets the AI personalise the conversation — e.g. probe onboarding issues for new accounts, make a stronger case for long-term customers.
+                      All fields are optional.
+                    </p>
                   </div>
                 </div>
               </div>
