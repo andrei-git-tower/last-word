@@ -118,7 +118,7 @@ export default function Widget() {
 
       {/* Chat / Survey / Typeform */}
       <div
-        className="flex-1 min-h-0 overflow-hidden"
+        className="flex-1 min-h-0 overflow-hidden flex flex-col"
         style={config?.widget_style === "typeform" ? undefined : { padding: "16px 20px 20px" }}
       >
         {config?.widget_style === "typeform" ? (
