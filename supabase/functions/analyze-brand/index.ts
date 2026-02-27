@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { geminiNonStreaming } from "../_shared/gemini.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -100,17 +101,38 @@ serve(async (req) => {
 
     console.log("[analyze-brand] Anthropic response status:", aiResponse.status);
 
+    let brand_prompt: string;
     if (!aiResponse.ok) {
       const errText = await aiResponse.text();
       console.error("[analyze-brand] Anthropic error:", aiResponse.status, errText);
-      return new Response(JSON.stringify({ error: "AI call failed", detail: errText }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
 
-    const aiJson = await aiResponse.json();
-    const brand_prompt: string = aiJson?.content?.[0]?.text?.trim() ?? "";
+      const GEMINI_API_KEY = Deno.env.get("VITE_GEMINI_API_KEY");
+      if (!GEMINI_API_KEY) {
+        return new Response(JSON.stringify({ error: "AI call failed", detail: errText }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      console.log("[analyze-brand] Falling back to Gemini...");
+      try {
+        brand_prompt = (await geminiNonStreaming(
+          "You are an expert brand strategist.",
+          [{ role: "user", content: `${BRAND_ANALYSIS_PROMPT}\n\n${scraped_content}` }],
+          256,
+          GEMINI_API_KEY
+        )).trim();
+      } catch (geminiErr) {
+        console.error("[analyze-brand] Gemini fallback failed:", geminiErr);
+        return new Response(JSON.stringify({ error: "AI call failed (both providers)" }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    } else {
+      const aiJson = await aiResponse.json();
+      brand_prompt = aiJson?.content?.[0]?.text?.trim() ?? "";
+    }
 
     console.log("[analyze-brand] brand_prompt generated, length:", brand_prompt.length);
 

@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { geminiNonStreaming } from "../_shared/gemini.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -631,10 +632,28 @@ serve(async (req) => {
       if (!forcedResponse.ok) {
         const t = await forcedResponse.text();
         console.error("AI gateway error (hard stop):", forcedResponse.status, t);
-        return new Response(JSON.stringify({ error: "AI gateway error" }), {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+
+        const GEMINI_API_KEY = Deno.env.get("VITE_GEMINI_API_KEY");
+        if (!GEMINI_API_KEY) {
+          return new Response(JSON.stringify({ error: "AI gateway error" }), {
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        try {
+          const geminiText = await geminiNonStreaming(forcedPrompt, messages, 1024, GEMINI_API_KEY);
+          const { text: finalText, insight } = forceFinalTranscript(geminiText, messages);
+          await saveInsight(supabase, accountId, insight, messages);
+          return new Response(textToAnthropicSSE(finalText), {
+            headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
+          });
+        } catch (geminiErr) {
+          console.error("Gemini fallback failed (hard-stop):", geminiErr);
+          return new Response(JSON.stringify({ error: "AI gateway error" }), {
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
       }
 
       const forcedJson = await forcedResponse.json();
@@ -673,6 +692,24 @@ serve(async (req) => {
     });
 
     if (!aiResponse.ok) {
+      if (aiResponse.status === 429 || aiResponse.status === 402) {
+        const GEMINI_API_KEY = Deno.env.get("VITE_GEMINI_API_KEY");
+        if (GEMINI_API_KEY) {
+          console.log("exit-interview: Anthropic rate-limited, falling back to Gemini...");
+          try {
+            const geminiText = await geminiNonStreaming(systemPrompt, messages, 1024, GEMINI_API_KEY);
+            if (geminiText.includes("[INTERVIEW_COMPLETE]")) {
+              const insight = normalizeInsightPayload(parseInsight(geminiText), messages);
+              await saveInsight(supabase, accountId, insight, messages);
+            }
+            return new Response(textToAnthropicSSE(geminiText), {
+              headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
+            });
+          } catch (geminiErr) {
+            console.error("Gemini fallback failed (streaming):", geminiErr);
+          }
+        }
+      }
       if (aiResponse.status === 429) {
         return new Response(JSON.stringify({ error: "Rate limits exceeded, please try again later." }), {
           status: 429,
