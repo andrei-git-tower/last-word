@@ -219,9 +219,15 @@ export function BrandingPage({ apiKey }: { apiKey: string }) {
                   <p className="text-sm text-foreground bg-secondary rounded-lg px-4 py-3 leading-relaxed">
                     {brandPrompt}
                   </p>
-                  <p className="text-xs text-muted-foreground mt-2">
-                    Saved — injected into all future interview prompts.
-                  </p>
+                  <div className="flex items-center gap-3 mt-2">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-500 shrink-0">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                    <span className="text-sm text-foreground">
+                      Saved — injected into all future interview prompts —{" "}
+                      <span className="text-emerald-500 font-medium">complete</span>
+                    </span>
+                  </div>
                 </div>
               )}
             </>
