@@ -2,14 +2,24 @@ import type { Message } from "./constants";
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/exit-interview`;
 
+export interface UserContext {
+  email?: string;
+  plan?: string;
+  account_age?: number;  // days
+  seats?: number;
+  mrr?: number;
+}
+
 export async function streamChat({
   messages,
   apiKey,
+  userContext,
   onDelta,
   onDone,
 }: {
   messages: Message[];
   apiKey: string;
+  userContext?: UserContext | null;
   onDelta: (deltaText: string) => void;
   onDone: () => void;
 }) {
@@ -20,7 +30,7 @@ export async function streamChat({
       Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
       "x-api-key": apiKey,
     },
-    body: JSON.stringify({ messages }),
+    body: JSON.stringify({ messages, userContext: userContext ?? null }),
   });
 
   if (!resp.ok) {

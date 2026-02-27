@@ -7,12 +7,13 @@ import { Dashboard } from "@/components/Dashboard";
 import { InterviewChat } from "@/components/InterviewChat";
 import { SettingsPage } from "@/components/SettingsPage";
 import { BrandingPage } from "@/components/BrandingPage";
+import { RulesBuilder } from "@/components/RulesBuilder";
 import { toast } from "sonner";
 import type { Insight } from "@/lib/constants";
 
 const APP_URL = import.meta.env.VITE_APP_URL ?? window.location.origin;
 
-type Tab = "insights" | "interview" | "setup" | "settings" | "branding" | "superinsights";
+type Tab = "insights" | "interview" | "setup" | "settings" | "branding" | "rules" | "superinsights";
 
 const NAV_ITEMS = [
   {
@@ -55,6 +56,20 @@ const NAV_ITEMS = [
     ),
   },
   {
+    id: "rules",
+    label: "Rules",
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <line x1="8" y1="6" x2="21" y2="6" />
+        <line x1="8" y1="12" x2="21" y2="12" />
+        <line x1="8" y1="18" x2="21" y2="18" />
+        <line x1="3" y1="6" x2="3.01" y2="6" />
+        <line x1="3" y1="12" x2="3.01" y2="12" />
+        <line x1="3" y1="18" x2="3.01" y2="18" />
+      </svg>
+    ),
+  },
+  {
     id: "settings",
     label: "Settings",
     icon: (
@@ -80,6 +95,7 @@ const PAGE_TITLES: Record<Tab, { title: string; description: string }> = {
   interview: { title: "Test Interview", description: "Preview the exit interview your customers will experience." },
   setup: { title: "Setup", description: "Install the widget and configure your integration." },
   branding: { title: "Branding", description: "Scrape your website to tailor the interview experience to your brand." },
+  rules: { title: "Rules", description: "Define prioritized rules that inject custom text into the AI system prompt based on user context." },
   settings: { title: "Settings", description: "Manage conversation limits, competitors, and account preferences." },
   superinsights: { title: "Superinsights", description: "All interviews across all accounts — dev only." },
 };
@@ -335,6 +351,9 @@ export default function DashboardPage() {
 
           {/* Branding tab */}
           {tab === "branding" && <BrandingPage apiKey={apiKey} />}
+
+          {/* Rules tab */}
+          {tab === "rules" && <RulesBuilder />}
 
           {/* Settings tab */}
           {tab === "settings" && <SettingsPage />}

@@ -4,6 +4,18 @@
   const baseUrl = script.src.replace(/\/widget\.js.*$/, "");
 
   let backdrop = null;
+  let iframe = null;
+  let iframeLoaded = false;
+  let pendingUserContext = null;
+
+  function sendUserContext() {
+    if (iframeLoaded && iframe) {
+      iframe.contentWindow.postMessage(
+        { type: "lastword:init", userContext: pendingUserContext },
+        "*"
+      );
+    }
+  }
 
   function createOverlay() {
     backdrop = document.createElement("div");
@@ -40,7 +52,7 @@
     closeBtn.setAttribute("aria-label", "Close");
     closeBtn.onclick = close;
 
-    const iframe = document.createElement("iframe");
+    iframe = document.createElement("iframe");
     iframe.src = baseUrl + "/widget?key=" + encodeURIComponent(apiKey);
     Object.assign(iframe.style, {
       width: "min(408px, calc(100vw - 32px))",
@@ -51,13 +63,23 @@
       boxShadow: "0 24px 64px rgba(0,0,0,0.2)",
     });
 
+    iframe.addEventListener("load", function () {
+      iframeLoaded = true;
+      sendUserContext();
+    });
+
     backdrop.appendChild(closeBtn);
     backdrop.appendChild(iframe);
     document.body.appendChild(backdrop);
   }
 
-  function open() {
-    if (!backdrop) createOverlay();
+  function open(userContext) {
+    pendingUserContext = userContext || null;
+    if (!backdrop) {
+      createOverlay();
+    } else {
+      sendUserContext();
+    }
     backdrop.style.visibility = "visible";
     backdrop.style.pointerEvents = "auto";
   }

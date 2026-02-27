@@ -69,7 +69,7 @@
     .field label { font-size: 14px; font-weight: 500; }
     .field .hint  { font-size: 12px; color: #999; margin-top: 2px; }
 
-    input[type="text"], input[type="email"], select {
+    input[type="text"], input[type="email"], input[type="number"] {
       border: 1px solid #ddd;
       border-radius: 8px;
       padding: 8px 12px;
@@ -80,56 +80,7 @@
     }
     input[type="text"]:focus,
     input[type="email"]:focus,
-    select:focus { border-color: #0071e3; }
-
-    .toggle {
-      width: 44px; height: 24px;
-      background: #34c759;
-      border-radius: 12px;
-      position: relative;
-      cursor: pointer;
-      transition: background .2s;
-    }
-    .toggle::after {
-      content: "";
-      position: absolute;
-      top: 2px; left: 22px;
-      width: 20px; height: 20px;
-      background: #fff;
-      border-radius: 50%;
-      transition: left .2s;
-    }
-    .toggle.off { background: #ccc; }
-    .toggle.off::after { left: 2px; }
-
-    /* Save button */
-    .actions {
-      display: flex;
-      justify-content: flex-end;
-      gap: 12px;
-      margin-top: 8px;
-    }
-
-    .btn {
-      padding: 10px 22px;
-      border-radius: 8px;
-      font-size: 14px;
-      font-weight: 500;
-      cursor: pointer;
-      border: none;
-      transition: opacity .15s, background .15s;
-    }
-    .btn:hover { opacity: .85; }
-
-    .btn-secondary {
-      background: #fff;
-      border: 1px solid #ddd;
-      color: #333;
-    }
-    .btn-primary {
-      background: #0071e3;
-      color: #fff;
-    }
+    input[type="number"]:focus { border-color: #0071e3; }
 
     /* Danger zone */
     .danger-zone .section-header h2 { color: #c0392b; }
@@ -178,73 +129,40 @@
     <h1>Settings</h1>
     <p class="subtitle">Manage your account preferences and subscription.</p>
 
-    <!-- Profile -->
+    <!-- Account Info -->
     <div class="section">
       <div class="section-header">
-        <h2>Profile</h2>
-        <p>Your public-facing information.</p>
+        <h2>Account</h2>
+        <p>Your account details.</p>
       </div>
       <div class="field">
-        <div><label>Full name</label></div>
-        <input type="text" value="Alex Johnson" />
+        <div><label>API Key</label></div>
+        <input type="text" value="lw_5f63c2c3bb6c435fa8966c0c783dc306" />
       </div>
       <div class="field">
         <div><label>Email</label></div>
-        <input type="email" value="alex@example.com" />
-      </div>
-    </div>
-
-    <!-- Notifications -->
-    <div class="section">
-      <div class="section-header">
-        <h2>Notifications</h2>
-        <p>Control what emails you receive.</p>
+        <input type="email" id="field-email" value="alex@example.com" />
       </div>
       <div class="field">
-        <div>
-          <label>Weekly digest</label>
-          <div class="hint">Summary of activity every Monday</div>
-        </div>
-        <div class="toggle"></div>
+        <div><label>MRR</label></div>
+        <input type="number" id="field-mrr" value="290" />
       </div>
       <div class="field">
-        <div>
-          <label>Product updates</label>
-          <div class="hint">New features and announcements</div>
-        </div>
-        <div class="toggle off"></div>
-      </div>
-    </div>
-
-    <!-- Billing -->
-    <div class="section">
-      <div class="section-header">
-        <h2>Billing</h2>
-        <p>Your current plan and payment details.</p>
+        <div><label>Account Age (days)</label></div>
+        <input type="number" id="field-account-age" value="180" />
       </div>
       <div class="field">
-        <div>
-          <label>Plan</label>
-          <div class="hint">Renews on March 15, 2026</div>
-        </div>
-        <span style="font-size:14px; font-weight:600; color:#34c759;">Pro — $29/mo</span>
+        <div><label>Seats</label></div>
+        <input type="number" id="field-seats" value="5" />
       </div>
       <div class="field">
-        <div>
-          <label>Payment method</label>
-          <div class="hint">Visa ending in 4242</div>
-        </div>
-        <button class="btn btn-secondary" style="padding:7px 16px; font-size:13px;">Update card</button>
+        <div><label>Plan</label></div>
+        <input type="text" id="field-plan" value="Pro" />
       </div>
-    </div>
-
-    <div class="actions">
-      <button class="btn btn-secondary">Discard</button>
-      <button class="btn btn-primary">Save changes</button>
     </div>
 
     <!-- Danger zone -->
-    <div class="section danger-zone" style="margin-top: 40px;">
+    <div class="section danger-zone" style="margin-top: 20px;">
       <div class="section-header">
         <h2>Danger zone</h2>
         <p>Irreversible actions — please proceed carefully.</p>
@@ -261,14 +179,15 @@
   </div>
 
   <script>
-    // Toggle switches
-    document.querySelectorAll('.toggle').forEach(t => {
-      t.addEventListener('click', () => t.classList.toggle('off'));
-    });
-
     // LastWord — open retention flow on cancel
     document.getElementById('cancel-btn').addEventListener('click', () => {
-      window.LastWord.open();
+      window.LastWord.open({
+        email:       document.getElementById('field-email').value,
+        plan:        document.getElementById('field-plan').value,
+        account_age: parseInt(document.getElementById('field-account-age').value) || undefined,
+        seats:       parseInt(document.getElementById('field-seats').value) || undefined,
+        mrr:         parseInt(document.getElementById('field-mrr').value) || undefined,
+      });
     });
   </script>
 </body>

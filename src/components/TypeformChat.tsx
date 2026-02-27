@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { streamChat } from "@/lib/chat-stream";
 import { parseInsights, cleanMessage } from "@/lib/constants";
 import type { Message, Insight } from "@/lib/constants";
+import type { UserContext } from "@/lib/chat-stream";
 import { toast } from "sonner";
 
 const FIRST_MESSAGE = "Hey — what's the main reason you're thinking of cancelling?";
@@ -15,6 +16,7 @@ interface TypeformChatProps {
   primaryColor?: string;
   buttonColor?: string;
   fontFamily?: string;
+  userContext?: UserContext | null;
 }
 
 export function TypeformChat({
@@ -24,6 +26,7 @@ export function TypeformChat({
   primaryColor,
   buttonColor,
   fontFamily,
+  userContext,
 }: TypeformChatProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [currentQuestion, setCurrentQuestion] = useState("");
@@ -106,6 +109,7 @@ export function TypeformChat({
     streamChat({
       messages: updatedMessages.map((m) => ({ role: m.role, content: m.content })),
       apiKey,
+      userContext,
       onDelta: (chunk) => {
         assistantSoFar += chunk;
         fullTextRef.current = assistantSoFar;

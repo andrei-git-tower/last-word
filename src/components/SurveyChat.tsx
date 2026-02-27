@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { streamChat } from "@/lib/chat-stream";
 import { parseInsights, cleanMessage } from "@/lib/constants";
 import type { Message, Insight } from "@/lib/constants";
+import type { UserContext } from "@/lib/chat-stream";
 import { toast } from "sonner";
 
 const FIRST_MESSAGE = "Hey — what's the main reason you're thinking of cancelling?";
@@ -13,9 +14,10 @@ interface SurveyChatProps {
   primaryColor?: string;
   buttonColor?: string;
   fontFamily?: string;
+  userContext?: UserContext | null;
 }
 
-export function SurveyChat({ onInsight, apiKey, autoStart = false, primaryColor, buttonColor, fontFamily }: SurveyChatProps) {
+export function SurveyChat({ onInsight, apiKey, autoStart = false, primaryColor, buttonColor, fontFamily, userContext }: SurveyChatProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [currentQuestion, setCurrentQuestion] = useState("");
   const [currentAnswer, setCurrentAnswer] = useState("");
@@ -71,6 +73,7 @@ export function SurveyChat({ onInsight, apiKey, autoStart = false, primaryColor,
     streamChat({
       messages: allMessages,
       apiKey,
+      userContext,
       onDelta: (chunk) => {
         assistantSoFar += chunk;
         fullTextRef.current = assistantSoFar;

@@ -3,6 +3,7 @@ import { Send } from "lucide-react";
 import { streamChat } from "@/lib/chat-stream";
 import { parseInsights, cleanMessage } from "@/lib/constants";
 import type { Message, Insight } from "@/lib/constants";
+import type { UserContext } from "@/lib/chat-stream";
 import { toast } from "sonner";
 
 const FIRST_MESSAGE = "Hey — what's the main reason you're thinking of cancelling?";
@@ -15,9 +16,10 @@ interface InterviewChatProps {
   primaryColor?: string;
   buttonColor?: string;
   fontFamily?: string;
+  userContext?: UserContext | null;
 }
 
-export function InterviewChat({ onInsight, apiKey, autoStart = false, fullHeight = false, primaryColor, buttonColor, fontFamily }: InterviewChatProps) {
+export function InterviewChat({ onInsight, apiKey, autoStart = false, fullHeight = false, primaryColor, buttonColor, fontFamily, userContext }: InterviewChatProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -80,6 +82,7 @@ export function InterviewChat({ onInsight, apiKey, autoStart = false, fullHeight
     streamChat({
       messages: allMessages,
       apiKey,
+      userContext,
       onDelta: (chunk) => {
         assistantSoFar += chunk;
         fullTextRef.current = assistantSoFar;

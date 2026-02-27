@@ -130,6 +130,11 @@ export type Database = {
           retention_accepted: boolean
           raw_transcript: Json
           created_at: string
+          user_email: string | null
+          user_plan: string | null
+          account_age: number | null
+          seats: number | null
+          mrr: number | null
         }
         Insert: {
           id?: string
@@ -147,6 +152,11 @@ export type Database = {
           retention_accepted?: boolean
           raw_transcript?: Json
           created_at?: string
+          user_email?: string | null
+          user_plan?: string | null
+          account_age?: number | null
+          seats?: number | null
+          mrr?: number | null
         }
         Update: {
           id?: string
@@ -164,6 +174,11 @@ export type Database = {
           retention_accepted?: boolean
           raw_transcript?: Json
           created_at?: string
+          user_email?: string | null
+          user_plan?: string | null
+          account_age?: number | null
+          seats?: number | null
+          mrr?: number | null
         }
         Relationships: []
       }

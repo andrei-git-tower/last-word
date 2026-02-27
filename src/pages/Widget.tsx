@@ -4,6 +4,7 @@ import { InterviewChat } from "@/components/InterviewChat";
 import { SurveyChat } from "@/components/SurveyChat";
 import { TypeformChat } from "@/components/TypeformChat";
 import type { Insight } from "@/lib/constants";
+import type { UserContext } from "@/lib/chat-stream";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
 const PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
@@ -22,6 +23,18 @@ export default function Widget() {
   const [searchParams] = useSearchParams();
   const apiKey = searchParams.get("key") ?? "";
   const [config, setConfig] = useState<WidgetConfig | null>(null);
+  const [userContext, setUserContext] = useState<UserContext | null>(null);
+
+  useEffect(() => {
+    function handleMessage(e: MessageEvent) {
+      if (e.data && e.data.type === "lastword:init") {
+        console.log("[LastWord] userContext received:", e.data.userContext);
+        setUserContext(e.data.userContext ?? null);
+      }
+    }
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
+  }, []);
 
   useEffect(() => {
     if (!apiKey) return;
@@ -92,6 +105,17 @@ export default function Widget() {
         </div>
       </div>
 
+      {/* Debug: user context (only shown when data is present) */}
+      {userContext && (
+        <div className="shrink-0 px-3 py-1.5 flex flex-wrap gap-x-3 gap-y-0.5 border-b border-white/10" style={{ backgroundColor: "#0d1117" }}>
+          {userContext.email     && <span className="text-[10px] text-emerald-400 font-mono">{userContext.email}</span>}
+          {userContext.plan      && <span className="text-[10px] text-sky-400 font-mono">plan:{userContext.plan}</span>}
+          {userContext.account_age !== undefined && <span className="text-[10px] text-violet-400 font-mono">age:{userContext.account_age}d</span>}
+          {userContext.seats     !== undefined && <span className="text-[10px] text-amber-400 font-mono">seats:{userContext.seats}</span>}
+          {userContext.mrr       !== undefined && <span className="text-[10px] text-rose-400 font-mono">mrr:${userContext.mrr}</span>}
+        </div>
+      )}
+
       {/* Chat / Survey / Typeform */}
       <div
         className="flex-1 min-h-0 overflow-hidden"
@@ -105,6 +129,7 @@ export default function Widget() {
             primaryColor={primaryColor}
             buttonColor={buttonColor}
             fontFamily={fontFamily}
+            userContext={userContext}
           />
         ) : config?.widget_style === "survey" ? (
           <SurveyChat
@@ -114,6 +139,7 @@ export default function Widget() {
             primaryColor={primaryColor}
             buttonColor={buttonColor}
             fontFamily={fontFamily}
+            userContext={userContext}
           />
         ) : (
           <InterviewChat
@@ -124,6 +150,7 @@ export default function Widget() {
             primaryColor={primaryColor}
             buttonColor={buttonColor}
             fontFamily={fontFamily}
+            userContext={userContext}
           />
         )}
       </div>

@@ -10,6 +10,14 @@ const corsHeaders = {
 
 // --- Types ---
 
+interface UserContext {
+  email?: string;
+  plan?: string;
+  account_age?: number;  // days
+  seats?: number;
+  mrr?: number;
+}
+
 interface Plan {
   name: string;
   price: string;
@@ -62,6 +70,35 @@ interface NotificationEndpoint {
 
 // --- Prompt builder ---
 
+function buildUserContextBlock(ctx: UserContext | null | undefined): string {
+  if (!ctx) return "";
+
+  const lines: string[] = ["## User Context"];
+  if (ctx.email)       lines.push(`- Email: ${ctx.email}`);
+  if (ctx.plan)        lines.push(`- Plan: ${ctx.plan}`);
+  if (ctx.account_age !== undefined) lines.push(`- Account age: ${ctx.account_age} days`);
+  if (ctx.seats !== undefined)       lines.push(`- Seats: ${ctx.seats}`);
+  if (ctx.mrr !== undefined)         lines.push(`- MRR: $${ctx.mrr}`);
+
+  let guidance = "";
+  const age = ctx.account_age;
+  if (age !== undefined) {
+    if (age <= 7) {
+      guidance = "This is a brand-new customer (0–7 days). Likely an onboarding problem — probe setup friction and first impressions.";
+    } else if (age <= 30) {
+      guidance = "This is an early-adoption customer (8–30 days). Look for product-fit gaps and unmet initial expectations.";
+    } else if (age <= 365) {
+      guidance = "This is a mid-lifecycle customer (31–365 days). Explore competitive pressure or missing features that have emerged over time.";
+    } else {
+      guidance = "This is a long-term, loyal customer (1+ year). High value — make a strong, personalised retention case.";
+    }
+  }
+
+  if (guidance) lines.push("", `Guidance: ${guidance}`);
+
+  return lines.join("\n");
+}
+
 function buildRetentionSection(paths: RetentionPathConfig): string {
   const sections: string[] = [];
 
@@ -94,7 +131,7 @@ function buildRetentionSection(paths: RetentionPathConfig): string {
   return sections.join("\n\n");
 }
 
-function buildSystemPrompt(config: AccountConfig, userTurns: number): string {
+function buildSystemPrompt(config: AccountConfig, userTurns: number, userContext?: UserContext | null): string {
   const {
     product_name,
     product_description,
@@ -129,7 +166,10 @@ function buildSystemPrompt(config: AccountConfig, userTurns: number): string {
     ? `You are an expert copywriter. Always follow these brand guidelines: ${brand_prompt}`
     : "You are an expert copywriter. Keep the tone casual and human — like a quick Slack message, not a corporate email.";
 
+  const userContextBlock = buildUserContextBlock(userContext);
+
   return `${brandVoiceSection}
+${userContextBlock ? `\n${userContextBlock}\n` : ""}
 
 You are a friendly exit interview AI for ${product_name}. Your job is to understand WHY a customer is cancelling — not the surface reason, but the real story.
 
@@ -326,7 +366,8 @@ async function saveInsight(
   supabase: ReturnType<typeof createClient>,
   accountId: string,
   insight: InsightPayload,
-  messages: Array<{ role: string; content: string }>
+  messages: Array<{ role: string; content: string }>,
+  userContext?: UserContext | null
 ) {
   const { data, error: insertError } = await supabase
     .from("insights")
@@ -344,6 +385,11 @@ async function saveInsight(
     retention_path: insight.retention_path,
     retention_accepted: insight.retention_accepted,
     raw_transcript: messages,
+    user_email: userContext?.email ?? null,
+    user_plan: userContext?.plan ?? null,
+    account_age: userContext?.account_age ?? null,
+    seats: userContext?.seats ?? null,
+    mrr: userContext?.mrr ?? null,
   })
     .select("id")
     .single();
@@ -570,7 +616,9 @@ serve(async (req) => {
       .eq("account_id", accountId)
       .single();
 
-    const { messages: rawMessages } = await req.json();
+    const body = await req.json();
+    const rawMessages = body.messages;
+    const userContext: UserContext | null = body.userContext ?? null;
     const messages = rawMessages.length > 0 ? rawMessages : [{ role: "user", content: "start" }];
     const userTurns = countUserTurns(messages);
 
@@ -598,7 +646,7 @@ serve(async (req) => {
       config.max_exchanges = config.min_exchanges;
     }
 
-    const systemPrompt = buildSystemPrompt(config, userTurns);
+    const systemPrompt = buildSystemPrompt(config, userTurns, userContext);
     const hardStopReached = userTurns >= config.max_exchanges;
 
     const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
@@ -643,7 +691,7 @@ serve(async (req) => {
         try {
           const geminiText = await geminiNonStreaming(forcedPrompt, messages, 1024, GEMINI_API_KEY);
           const { text: finalText, insight } = forceFinalTranscript(geminiText, messages);
-          await saveInsight(supabase, accountId, insight, messages);
+          await saveInsight(supabase, accountId, insight, messages, userContext);
           return new Response(textToAnthropicSSE(finalText), {
             headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
           });
@@ -665,7 +713,7 @@ serve(async (req) => {
         : "";
 
       const { text: finalText, insight } = forceFinalTranscript(generatedText, messages);
-      const insightId = await saveInsight(supabase, accountId, insight, messages);
+      const insightId = await saveInsight(supabase, accountId, insight, messages, userContext);
       void deliverRealtimeNotifications(supabase, accountId, insightId, insight).catch((e) => {
         console.error("Notification dispatch error:", e);
       });
@@ -700,7 +748,7 @@ serve(async (req) => {
             const geminiText = await geminiNonStreaming(systemPrompt, messages, 1024, GEMINI_API_KEY);
             if (geminiText.includes("[INTERVIEW_COMPLETE]")) {
               const insight = normalizeInsightPayload(parseInsight(geminiText), messages);
-              await saveInsight(supabase, accountId, insight, messages);
+              await saveInsight(supabase, accountId, insight, messages, userContext);
             }
             return new Response(textToAnthropicSSE(geminiText), {
               headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
@@ -755,7 +803,7 @@ serve(async (req) => {
         const fullText = extractTextFromSSE(accumulated);
         if (fullText.includes("[INTERVIEW_COMPLETE]")) {
           const insight = normalizeInsightPayload(parseInsight(fullText), messages);
-          const insightId = await saveInsight(supabase, accountId, insight, messages);
+          const insightId = await saveInsight(supabase, accountId, insight, messages, userContext);
           void deliverRealtimeNotifications(supabase, accountId, insightId, insight).catch((e) => {
             console.error("Notification dispatch error:", e);
           });
