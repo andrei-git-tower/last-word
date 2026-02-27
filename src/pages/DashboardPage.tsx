@@ -127,7 +127,7 @@ export default function DashboardPage() {
   });
 
   const { data: config } = useQuery({
-    queryKey: ["config"],
+    queryKey: ["config-font"],
     queryFn: async () => {
       const { data } = await supabase
         .from("configs")

@@ -280,13 +280,23 @@ export function SettingsPage() {
   const [maxExchangesInput, setMaxExchangesInput] = useState(String(DEFAULT_MAX_EXCHANGES));
   const [savingLimits, setSavingLimits] = useState(false);
 
+  // Branding state
+  const [productName, setProductName] = useState("");
+  const [widgetSubtitle, setWidgetSubtitle] = useState("");
+  const [widgetStyle, setWidgetStyle] = useState<"chat" | "survey">("chat");
+  const [brandPrimaryColor, setBrandPrimaryColor] = useState("");
+  const [brandButtonColor, setBrandButtonColor] = useState("");
+  const [brandFont, setBrandFont] = useState("");
+  const [brandLogoUrl, setBrandLogoUrl] = useState("");
+  const [savingBranding, setSavingBranding] = useState(false);
+
   const { data: config, isLoading: configLoading } = useQuery({
     queryKey: ["config"],
     enabled: !!user?.id,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("configs")
-        .select("id, product_name, product_description, competitors, plans, retention_paths, min_exchanges, max_exchanges")
+        .select("id, product_name, product_description, competitors, plans, retention_paths, min_exchanges, max_exchanges, brand_primary_color, brand_button_color, brand_font, brand_logo_url, widget_subtitle, widget_style")
         .eq("account_id", user!.id)
         .maybeSingle();
       if (error) throw error;
@@ -310,6 +320,13 @@ export function SettingsPage() {
     if (!config) return;
     setMinExchangesInput(String(config.min_exchanges ?? DEFAULT_MIN_EXCHANGES));
     setMaxExchangesInput(String(config.max_exchanges ?? DEFAULT_MAX_EXCHANGES));
+    setProductName(config.product_name ?? "");
+    setWidgetSubtitle((config as { widget_subtitle?: string }).widget_subtitle ?? "");
+    setWidgetStyle(((config as { widget_style?: string }).widget_style as "chat" | "survey") ?? "chat");
+    setBrandPrimaryColor(config.brand_primary_color ?? "");
+    setBrandButtonColor(config.brand_button_color ?? "");
+    setBrandFont(config.brand_font ?? "");
+    setBrandLogoUrl(config.brand_logo_url ?? "");
   }, [config]);
 
   const minExchanges = Number.parseInt(minExchangesInput, 10);
@@ -354,6 +371,34 @@ export function SettingsPage() {
     }
 
     toast.success("Conversation limits saved.");
+    queryClient.invalidateQueries({ queryKey: ["config"] });
+  }
+
+  async function saveBranding() {
+    if (!user?.id) return;
+    setSavingBranding(true);
+    const { error } = await supabase
+      .from("configs")
+      .upsert(
+        {
+          account_id: user.id,
+          product_name: productName,
+          widget_subtitle: widgetSubtitle,
+          widget_style: widgetStyle,
+          brand_primary_color: brandPrimaryColor,
+          brand_button_color: brandButtonColor,
+          brand_font: brandFont,
+          brand_logo_url: brandLogoUrl,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "account_id" }
+      );
+    setSavingBranding(false);
+    if (error) {
+      toast.error("Failed to save branding.");
+      return;
+    }
+    toast.success("Branding saved.");
     queryClient.invalidateQueries({ queryKey: ["config"] });
   }
 
@@ -436,6 +481,131 @@ export function SettingsPage() {
                   Current setting: {savedMin}-{savedMax} customer replies
                 </span>
               )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="bg-card rounded-xl border border-border p-5">
+        <h3 className="font-semibold text-sm text-foreground mb-1">Branding</h3>
+        <p className="text-xs text-muted-foreground mb-4">
+          Override the brand colors, font, and logo used in the widget. These are auto-detected when you run brand analysis.
+        </p>
+
+        {configLoading ? (
+          <div className="text-sm text-muted-foreground">Loading...</div>
+        ) : (
+          <div className="space-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">Brand name</label>
+                <input
+                  type="text"
+                  value={productName}
+                  onChange={(e) => setProductName(e.target.value)}
+                  placeholder="e.g. Tower"
+                  className={INPUT_CLS}
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">Widget subtitle</label>
+                <input
+                  type="text"
+                  value={widgetSubtitle}
+                  onChange={(e) => setWidgetSubtitle(e.target.value)}
+                  placeholder="We'd like to hear from you"
+                  className={INPUT_CLS}
+                />
+              </div>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">Widget style</label>
+              <div className="flex gap-2">
+                {(["chat", "survey"] as const).map((style) => (
+                  <button
+                    key={style}
+                    type="button"
+                    onClick={() => setWidgetStyle(style)}
+                    className={`px-4 py-2 text-sm rounded-lg border transition-colors ${
+                      widgetStyle === style
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-border bg-background text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {style === "chat" ? "Chat" : "Survey"}
+                    <span className="ml-1.5 text-xs opacity-70">
+                      {style === "chat" ? "Bubble-style" : "Form-style"}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">Primary color</label>
+                <div className="flex items-center gap-2">
+                  {brandPrimaryColor && (
+                    <div
+                      className="w-7 h-7 rounded border border-border shrink-0"
+                      style={{ backgroundColor: brandPrimaryColor }}
+                    />
+                  )}
+                  <input
+                    type="text"
+                    value={brandPrimaryColor}
+                    onChange={(e) => setBrandPrimaryColor(e.target.value)}
+                    placeholder="#000000"
+                    className={INPUT_CLS}
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">Button color</label>
+                <div className="flex items-center gap-2">
+                  {brandButtonColor && (
+                    <div
+                      className="w-7 h-7 rounded border border-border shrink-0"
+                      style={{ backgroundColor: brandButtonColor }}
+                    />
+                  )}
+                  <input
+                    type="text"
+                    value={brandButtonColor}
+                    onChange={(e) => setBrandButtonColor(e.target.value)}
+                    placeholder="#000000"
+                    className={INPUT_CLS}
+                  />
+                </div>
+              </div>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">Font</label>
+              <input
+                type="text"
+                value={brandFont}
+                onChange={(e) => setBrandFont(e.target.value)}
+                placeholder="e.g. Inter, sans-serif"
+                className={INPUT_CLS}
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">Logo URL</label>
+              <input
+                type="text"
+                value={brandLogoUrl}
+                onChange={(e) => setBrandLogoUrl(e.target.value)}
+                placeholder="https://example.com/logo.png"
+                className={INPUT_CLS}
+              />
+            </div>
+            <div className="flex items-center gap-2 pt-1">
+              <button
+                onClick={saveBranding}
+                disabled={savingBranding}
+                className="px-3 py-1.5 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
+              >
+                {savingBranding ? "Saving..." : "Save branding"}
+              </button>
             </div>
           </div>
         )}

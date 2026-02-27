@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -156,6 +157,15 @@ function extractLogoUrl(html: string, domain: string): string | null {
   return null;
 }
 
+function domainToBrandName(domain: string): string {
+  // Strip www. prefix, then strip TLD, then humanize
+  const host = domain.replace(/^www\./i, "");
+  const withoutTld = host.replace(/\.[^.]+$/, ""); // remove last segment (TLD)
+  return withoutTld
+    .replace(/[-_]+/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 const COLOR_VALUE = /(#[0-9a-fA-F]{3,8}|rgb[a]?\([^)]+\)|hsl[a]?\([^)]+\))/;
 const EXCLUDED_COLORS = /^(#fff(fff)?|#000(000)?|white|black|transparent|inherit|initial|currentcolor|none)$/i;
 
@@ -271,6 +281,7 @@ function extractBrandColors(html: string): BrandColors {
 
 export function BrandingPage({ apiKey }: { apiKey: string }) {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [domain, setDomain] = useState("");
   const [stage, setStage] = useState<Stage>("idle");
   const [logoStatus, setLogoStatus] = useState<LogoStatus>("idle");
@@ -367,7 +378,7 @@ export function BrandingPage({ apiKey }: { apiKey: string }) {
           .from("configs")
           .upsert({
             account_id: user.id,
-            product_name: "",
+            product_name: domainToBrandName(trimmed),
             brand_logo_url: logo ?? "",
             brand_primary_color: colors.primary ?? "",
             brand_button_color: colors.button ?? "",
@@ -376,6 +387,7 @@ export function BrandingPage({ apiKey }: { apiKey: string }) {
           }, { onConflict: "account_id" })
           .then(({ error }) => {
             if (error) console.error("Failed to save branding fields:", error);
+            else queryClient.invalidateQueries({ queryKey: ["config"] });
           });
       }
     } else {

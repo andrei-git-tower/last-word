@@ -40,7 +40,7 @@ serve(async (req) => {
 
     const { data: config } = await supabase
       .from("configs")
-      .select("brand_primary_color, brand_button_color, brand_font, brand_logo_url")
+      .select("brand_primary_color, brand_button_color, brand_font, brand_logo_url, product_name, widget_subtitle, widget_style")
       .eq("account_id", account.id)
       .maybeSingle();
 
@@ -50,6 +50,9 @@ serve(async (req) => {
         brand_button_color: config?.brand_button_color ?? "",
         brand_font: config?.brand_font ?? "",
         brand_logo_url: config?.brand_logo_url ?? "",
+        brand_name: config?.product_name ?? "",
+        widget_subtitle: config?.widget_subtitle ?? "",
+        widget_style: config?.widget_style ?? "chat",
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
