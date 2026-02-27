@@ -104,16 +104,6 @@ export default function Widget() {
         </div>
       </div>
 
-      {/* Debug: user context (only shown when data is present) */}
-      {userContext && (
-        <div className="shrink-0 px-3 py-1.5 flex flex-wrap gap-x-3 gap-y-0.5 border-b border-white/10" style={{ backgroundColor: "#0d1117" }}>
-          {userContext.email     && <span className="text-[10px] text-emerald-400 font-mono">{userContext.email}</span>}
-          {userContext.plan      && <span className="text-[10px] text-sky-400 font-mono">plan:{userContext.plan}</span>}
-          {userContext.account_age !== undefined && <span className="text-[10px] text-violet-400 font-mono">age:{userContext.account_age}d</span>}
-          {userContext.seats     !== undefined && <span className="text-[10px] text-amber-400 font-mono">seats:{userContext.seats}</span>}
-          {userContext.mrr       !== undefined && <span className="text-[10px] text-rose-400 font-mono">mrr:${userContext.mrr}</span>}
-        </div>
-      )}
 
       {/* Chat / Survey / Typeform */}
       <div
