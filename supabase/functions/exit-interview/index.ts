@@ -214,7 +214,7 @@ function buildSystemPrompt(config: AccountConfig, userTurns: number, userContext
 
   const userContextBlock = buildUserContextBlock(userContext);
   const ruleInjectionBlock = ruleInjection
-    ? `\n## Account-Specific Guidance\n${ruleInjection}`
+    ? `\nVERY IMPORTANT INFORMATION FOR THIS SPECIFIC ACCOUNT:\n${ruleInjection}`
     : "";
 
   return `${brandVoiceSection}
