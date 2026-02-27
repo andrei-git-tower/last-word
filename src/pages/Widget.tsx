@@ -28,8 +28,9 @@ export default function Widget() {
   useEffect(() => {
     function handleMessage(e: MessageEvent) {
       if (e.data && e.data.type === "lastword:init") {
-        console.log("[LastWord] userContext received:", e.data.userContext);
+        console.log("[LastWord] postMessage received, userContext:", e.data.userContext);
         setUserContext(e.data.userContext ?? null);
+        console.log("[LastWord] setUserContext called, autoStart will become:", e.data.userContext !== null);
       }
     }
     window.addEventListener("message", handleMessage);

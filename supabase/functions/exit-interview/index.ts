@@ -658,9 +658,9 @@ serve(async (req) => {
     const messages = rawMessages.length > 0 ? rawMessages : [{ role: "user", content: "start" }];
     const userTurns = countUserTurns(messages);
 
-    // On the first real user message, create a partial insight row so user
-    // context is persisted immediately rather than waiting for interview end.
-    if (userTurns === 1 && !insightId) {
+    // On the greeting call (empty messages) or first real user message,
+    // create a partial insight row so user context is persisted immediately.
+    if ((userTurns === 0 || userTurns === 1) && !insightId) {
       insightId = await createPartialInsight(supabase, accountId, userContext);
     }
 
