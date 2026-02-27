@@ -54,6 +54,7 @@ export function InterviewChat({ onInsight, apiKey, autoStart = false }: Intervie
         const raw = fullTextRef.current;
         if (raw.includes("[INTERVIEW_COMPLETE]")) {
           setComplete(true);
+          // Parse internal analytics payload; this is not shown in the chat UI.
           const insight = parseInsights(raw);
           if (insight) {
             onInsight({ ...insight, date: "just now" });
@@ -114,6 +115,7 @@ export function InterviewChat({ onInsight, apiKey, autoStart = false }: Intervie
         const raw = fullTextRef.current;
         if (raw.includes("[INTERVIEW_COMPLETE]")) {
           setComplete(true);
+          // Parse internal analytics payload; this is not shown in the chat UI.
           const insight = parseInsights(raw);
           if (insight) {
             onInsight({ ...insight, date: "just now" });
