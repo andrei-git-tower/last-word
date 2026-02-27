@@ -1,8 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Send } from "lucide-react";
 import { streamChat } from "@/lib/chat-stream";
-import { parseInsights, cleanMessage, RETENTION_META } from "@/lib/constants";
-import { RetentionPathCard } from "./RetentionPathCard";
+import { parseInsights, cleanMessage } from "@/lib/constants";
 import type { Message, Insight } from "@/lib/constants";
 import { toast } from "sonner";
 
@@ -17,7 +16,6 @@ export function InterviewChat({ onInsight, apiKey, autoStart = false }: Intervie
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [complete, setComplete] = useState(false);
-  const [latestInsight, setLatestInsight] = useState<Insight | null>(null);
   const [started, setStarted] = useState(false);
   const chatRef = useRef<HTMLDivElement>(null);
   const fullTextRef = useRef("");
@@ -31,7 +29,6 @@ export function InterviewChat({ onInsight, apiKey, autoStart = false }: Intervie
     setStarted(true);
     setMessages([]);
     setComplete(false);
-    setLatestInsight(null);
     fullTextRef.current = "";
 
     setLoading(true);
@@ -59,7 +56,6 @@ export function InterviewChat({ onInsight, apiKey, autoStart = false }: Intervie
           setComplete(true);
           const insight = parseInsights(raw);
           if (insight) {
-            setLatestInsight(insight);
             onInsight({ ...insight, date: "just now" });
           }
         }
@@ -120,7 +116,6 @@ export function InterviewChat({ onInsight, apiKey, autoStart = false }: Intervie
           setComplete(true);
           const insight = parseInsights(raw);
           if (insight) {
-            setLatestInsight(insight);
             onInsight({ ...insight, date: "just now" });
           }
         }
@@ -182,64 +177,6 @@ export function InterviewChat({ onInsight, apiKey, autoStart = false }: Intervie
           </div>
         )}
       </div>
-
-      {complete && latestInsight && (
-        <div className="mx-4 mb-2 space-y-2">
-          <div className="p-4 bg-teal-accent-light border border-teal-accent rounded-xl">
-            <div className="text-xs font-semibold text-teal-accent-foreground mb-2 uppercase tracking-wide">
-              Extracted Insight
-            </div>
-            <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm">
-              <div>
-                <span className="text-muted-foreground">Surface:</span>{" "}
-                <span className="font-medium">{latestInsight.surface_reason}</span>
-              </div>
-              <div>
-                <span className="text-muted-foreground">Category:</span>{" "}
-                <span className="font-medium">{latestInsight.category}</span>
-              </div>
-              <div className="col-span-2">
-                <span className="text-muted-foreground">Deep reasons:</span>{" "}
-                <span className="font-medium">{latestInsight.deep_reasons?.join(", ")}</span>
-              </div>
-              {latestInsight.competitor && (
-                <div>
-                  <span className="text-muted-foreground">Competitor:</span>{" "}
-                  <span className="font-medium text-red-accent">{latestInsight.competitor}</span>
-                </div>
-              )}
-              {latestInsight.feature_gaps?.length > 0 && (
-                <div>
-                  <span className="text-muted-foreground">Gaps:</span>{" "}
-                  <span className="font-medium">{latestInsight.feature_gaps.join(", ")}</span>
-                </div>
-              )}
-              <div className="col-span-2">
-                <span className="text-muted-foreground">Salvageable:</span>{" "}
-                <span className={`font-semibold ${latestInsight.salvageable ? "text-teal-accent" : "text-muted-foreground"}`}>
-                  {latestInsight.salvageable ? "Yes ✓" : "No"}
-                </span>
-              </div>
-            </div>
-          </div>
-          {latestInsight.retention_path && (
-            <div
-              className={`p-4 rounded-xl border-2 ${
-                RETENTION_META[latestInsight.retention_path]?.color || "bg-secondary text-muted-foreground border-border"
-              }`}
-            >
-              <div className="text-xs font-semibold uppercase tracking-wide mb-1 opacity-70">Retention Path Triggered</div>
-              <div className="flex items-center gap-2">
-                <span className="text-xl">{RETENTION_META[latestInsight.retention_path]?.icon}</span>
-                <div>
-                  <div className="font-semibold text-sm">{RETENTION_META[latestInsight.retention_path]?.label}</div>
-                  <div className="text-xs opacity-80">{RETENTION_META[latestInsight.retention_path]?.desc}</div>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
 
       <div className="p-4 border-t border-border">
         {complete ? (

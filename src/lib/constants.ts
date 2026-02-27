@@ -60,8 +60,12 @@ export function parseInsights(text: string): Insight | null {
 }
 
 export function cleanMessage(text: string): string {
-  return text
-    .replace(/\[INTERVIEW_COMPLETE\]/g, "")
-    .replace(/\[INSIGHTS\][\s\S]*?\[\/INSIGHTS\]/g, "")
-    .trim();
+  let visible = text.replace(/\[INTERVIEW_COMPLETE\]/g, "");
+  const insightsStart = visible.indexOf("[INSIGHTS]");
+  if (insightsStart !== -1) {
+    // Hide internal insight payload as soon as it starts streaming, even
+    // before [/INSIGHTS] arrives.
+    visible = visible.slice(0, insightsStart);
+  }
+  return visible.trim();
 }
