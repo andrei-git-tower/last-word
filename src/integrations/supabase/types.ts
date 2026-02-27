@@ -68,6 +68,30 @@ export type Database = {
         }
         Relationships: []
       }
+      competitors: {
+        Row: {
+          id: string
+          account_id: string
+          name: string
+          questions: string[]
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          account_id?: string
+          name: string
+          questions?: string[]
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          account_id?: string
+          name?: string
+          questions?: string[]
+          created_at?: string
+        }
+        Relationships: []
+      }
       insights: {
         Row: {
           id: string

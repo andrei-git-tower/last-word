@@ -5,14 +5,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { Dashboard } from "@/components/Dashboard";
 import { InterviewChat } from "@/components/InterviewChat";
+import { SettingsPage } from "@/components/SettingsPage";
 import { toast } from "sonner";
 import type { Insight } from "@/lib/constants";
 
 const APP_URL = import.meta.env.VITE_APP_URL ?? window.location.origin;
 
-type Tab = "insights" | "interview" | "setup";
+type Tab = "insights" | "interview" | "setup" | "settings";
 
-const NAV_ITEMS: { id: Tab; label: string; icon: React.ReactNode }[] = [
+const NAV_ITEMS = [
   {
     id: "setup",
     label: "Setup",
@@ -41,12 +42,23 @@ const NAV_ITEMS: { id: Tab; label: string; icon: React.ReactNode }[] = [
       </svg>
     ),
   },
-];
+  {
+    id: "settings",
+    label: "Settings",
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+        <circle cx="12" cy="12" r="3" />
+      </svg>
+    ),
+  },
+] as const satisfies { id: Tab; label: string; icon: React.ReactNode }[];
 
 const PAGE_TITLES: Record<Tab, { title: string; description: string }> = {
   insights: { title: "Insights", description: "Understand why customers are leaving and how to save them." },
   interview: { title: "Test Interview", description: "Preview the exit interview your customers will experience." },
   setup: { title: "Setup", description: "Install the widget and configure your integration." },
+  settings: { title: "Settings", description: "Manage competitors and other account preferences." },
 };
 
 export default function DashboardPage() {
@@ -240,6 +252,9 @@ export default function DashboardPage() {
               </div>
             )
           )}
+
+          {/* Settings tab */}
+          {tab === "settings" && <SettingsPage />}
 
           {/* Setup tab */}
           {tab === "setup" && (
