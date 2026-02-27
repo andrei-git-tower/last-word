@@ -28,6 +28,7 @@ export function InterviewChat({ onInsight, apiKey, autoStart = false, fullHeight
   const chatRef = useRef<HTMLDivElement>(null);
   const fullTextRef = useRef("");
   const autoStarted = useRef(false);
+  const insightIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight;
@@ -38,6 +39,7 @@ export function InterviewChat({ onInsight, apiKey, autoStart = false, fullHeight
     setMessages([]);
     setComplete(false);
     fullTextRef.current = "";
+    insightIdRef.current = null;
     setLoading(true);
 
     // Show dots briefly, then stream the static first message character by character
@@ -83,6 +85,8 @@ export function InterviewChat({ onInsight, apiKey, autoStart = false, fullHeight
       messages: allMessages,
       apiKey,
       userContext,
+      insightId: insightIdRef.current,
+      onInsightId: (id) => { insightIdRef.current = id; },
       onDelta: (chunk) => {
         assistantSoFar += chunk;
         fullTextRef.current = assistantSoFar;

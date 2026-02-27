@@ -39,6 +39,7 @@ export function TypeformChat({
   const fullTextRef = useRef("");
   const autoStarted = useRef(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const insightIdRef = useRef<string | null>(null);
 
   const accentColor = buttonColor || primaryColor || "#2563eb";
 
@@ -75,6 +76,7 @@ export function TypeformChat({
     setStepCount(0);
     setCurrentQuestion("");
     fullTextRef.current = "";
+    insightIdRef.current = null;
     setPhase("entering");
     setTimeout(() => {
       setCurrentQuestion(FIRST_MESSAGE);
@@ -110,6 +112,8 @@ export function TypeformChat({
       messages: updatedMessages.map((m) => ({ role: m.role, content: m.content })),
       apiKey,
       userContext,
+      insightId: insightIdRef.current,
+      onInsightId: (id) => { insightIdRef.current = id; },
       onDelta: (chunk) => {
         assistantSoFar += chunk;
         fullTextRef.current = assistantSoFar;

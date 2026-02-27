@@ -26,6 +26,7 @@ export function SurveyChat({ onInsight, apiKey, autoStart = false, primaryColor,
   const [started, setStarted] = useState(false);
   const fullTextRef = useRef("");
   const autoStarted = useRef(false);
+  const insightIdRef = useRef<string | null>(null);
 
   const accentColor = buttonColor || primaryColor || "#2563eb";
 
@@ -36,6 +37,7 @@ export function SurveyChat({ onInsight, apiKey, autoStart = false, primaryColor,
     setCurrentAnswer("");
     setCurrentQuestion("");
     fullTextRef.current = "";
+    insightIdRef.current = null;
     setLoading(true);
 
     setTimeout(() => {
@@ -74,6 +76,8 @@ export function SurveyChat({ onInsight, apiKey, autoStart = false, primaryColor,
       messages: allMessages,
       apiKey,
       userContext,
+      insightId: insightIdRef.current,
+      onInsightId: (id) => { insightIdRef.current = id; },
       onDelta: (chunk) => {
         assistantSoFar += chunk;
         fullTextRef.current = assistantSoFar;

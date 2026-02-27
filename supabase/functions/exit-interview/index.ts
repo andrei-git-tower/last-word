@@ -6,6 +6,7 @@ const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type, x-api-key",
+  "Access-Control-Expose-Headers": "x-insight-id",
 };
 
 // --- Types ---
@@ -362,16 +363,47 @@ function textToAnthropicSSE(text: string): ReadableStream<Uint8Array> {
   });
 }
 
+async function createPartialInsight(
+  supabase: ReturnType<typeof createClient>,
+  accountId: string,
+  userContext: UserContext | null
+): Promise<string | null> {
+  const { data, error } = await supabase
+    .from("insights")
+    .insert({
+      account_id: accountId,
+      user_email: userContext?.email ?? null,
+      user_plan: userContext?.plan ?? null,
+      account_age: userContext?.account_age ?? null,
+      seats: userContext?.seats ?? null,
+      mrr: userContext?.mrr ?? null,
+      // required non-null columns get placeholder values
+      surface_reason: "",
+      deep_reasons: [],
+      sentiment: "neutral",
+      salvageable: false,
+      key_quote: "",
+      category: "other",
+      feature_gaps: [],
+      retention_path: "offboard_gracefully",
+      retention_accepted: false,
+      raw_transcript: [],
+    })
+    .select("id")
+    .single();
+  if (error) console.error("Failed to create partial insight:", error);
+  return (data?.id as string | undefined) ?? null;
+}
+
 async function saveInsight(
   supabase: ReturnType<typeof createClient>,
   accountId: string,
   insight: InsightPayload,
   messages: Array<{ role: string; content: string }>,
-  userContext?: UserContext | null
+  userContext?: UserContext | null,
+  existingInsightId?: string | null
 ) {
-  const { data, error: insertError } = await supabase
-    .from("insights")
-    .insert({
+  const payload = {
     account_id: accountId,
     surface_reason: insight.surface_reason,
     deep_reasons: insight.deep_reasons,
@@ -390,7 +422,20 @@ async function saveInsight(
     account_age: userContext?.account_age ?? null,
     seats: userContext?.seats ?? null,
     mrr: userContext?.mrr ?? null,
-  })
+  };
+
+  if (existingInsightId) {
+    const { error } = await supabase
+      .from("insights")
+      .update(payload)
+      .eq("id", existingInsightId);
+    if (error) console.error("Failed to update insight:", error);
+    return existingInsightId;
+  }
+
+  const { data, error: insertError } = await supabase
+    .from("insights")
+    .insert(payload)
     .select("id")
     .single();
   if (insertError) console.error("Failed to save insight:", insertError);
@@ -609,8 +654,15 @@ serve(async (req) => {
     const body = await req.json();
     const rawMessages = body.messages;
     const userContext: UserContext | null = body.userContext ?? null;
+    let insightId: string | null = body.insightId ?? null;
     const messages = rawMessages.length > 0 ? rawMessages : [{ role: "user", content: "start" }];
     const userTurns = countUserTurns(messages);
+
+    // On the first real user message, create a partial insight row so user
+    // context is persisted immediately rather than waiting for interview end.
+    if (userTurns === 1 && !insightId) {
+      insightId = await createPartialInsight(supabase, accountId, userContext);
+    }
 
     const config: AccountConfig = configRow ? {
       product_name: configRow.product_name,
@@ -681,7 +733,7 @@ serve(async (req) => {
         try {
           const geminiText = await geminiNonStreaming(forcedPrompt, messages, 1024, GEMINI_API_KEY);
           const { text: finalText, insight } = forceFinalTranscript(geminiText, messages);
-          await saveInsight(supabase, accountId, insight, messages, userContext);
+          await saveInsight(supabase, accountId, insight, messages, userContext, insightId);
           return new Response(textToAnthropicSSE(finalText), {
             headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
           });
@@ -703,8 +755,8 @@ serve(async (req) => {
         : "";
 
       const { text: finalText, insight } = forceFinalTranscript(generatedText, messages);
-      const insightId = await saveInsight(supabase, accountId, insight, messages, userContext);
-      void deliverRealtimeNotifications(supabase, accountId, insightId, insight).catch((e) => {
+      const savedId = await saveInsight(supabase, accountId, insight, messages, userContext, insightId);
+      void deliverRealtimeNotifications(supabase, accountId, savedId, insight).catch((e) => {
         console.error("Notification dispatch error:", e);
       });
 
@@ -738,7 +790,7 @@ serve(async (req) => {
             const geminiText = await geminiNonStreaming(systemPrompt, messages, 1024, GEMINI_API_KEY);
             if (geminiText.includes("[INTERVIEW_COMPLETE]")) {
               const insight = normalizeInsightPayload(parseInsight(geminiText), messages);
-              await saveInsight(supabase, accountId, insight, messages, userContext);
+              await saveInsight(supabase, accountId, insight, messages, userContext, insightId);
             }
             return new Response(textToAnthropicSSE(geminiText), {
               headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
@@ -793,8 +845,8 @@ serve(async (req) => {
         const fullText = extractTextFromSSE(accumulated);
         if (fullText.includes("[INTERVIEW_COMPLETE]")) {
           const insight = normalizeInsightPayload(parseInsight(fullText), messages);
-          const insightId = await saveInsight(supabase, accountId, insight, messages, userContext);
-          void deliverRealtimeNotifications(supabase, accountId, insightId, insight).catch((e) => {
+          const savedId = await saveInsight(supabase, accountId, insight, messages, userContext, insightId);
+          void deliverRealtimeNotifications(supabase, accountId, savedId, insight).catch((e) => {
             console.error("Notification dispatch error:", e);
           });
         }
@@ -805,9 +857,10 @@ serve(async (req) => {
       }
     })();
 
-    return new Response(readable, {
-      headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
-    });
+    const responseHeaders: Record<string, string> = { ...corsHeaders, "Content-Type": "text/event-stream" };
+    if (insightId) responseHeaders["x-insight-id"] = insightId;
+
+    return new Response(readable, { headers: responseHeaders });
   } catch (e) {
     console.error("exit-interview error:", e);
     return new Response(

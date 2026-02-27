@@ -14,14 +14,18 @@ export async function streamChat({
   messages,
   apiKey,
   userContext,
+  insightId,
   onDelta,
   onDone,
+  onInsightId,
 }: {
   messages: Message[];
   apiKey: string;
   userContext?: UserContext | null;
+  insightId?: string | null;
   onDelta: (deltaText: string) => void;
   onDone: () => void;
+  onInsightId?: (id: string) => void;
 }) {
   const resp = await fetch(CHAT_URL, {
     method: "POST",
@@ -30,8 +34,11 @@ export async function streamChat({
       Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
       "x-api-key": apiKey,
     },
-    body: JSON.stringify({ messages, userContext: userContext ?? null }),
+    body: JSON.stringify({ messages, userContext: userContext ?? null, insightId: insightId ?? null }),
   });
+
+  const receivedInsightId = resp.headers.get("x-insight-id");
+  if (receivedInsightId && onInsightId) onInsightId(receivedInsightId);
 
   if (!resp.ok) {
     if (resp.status === 429) throw new Error("Rate limited — please try again in a moment.");
