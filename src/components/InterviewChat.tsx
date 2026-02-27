@@ -138,8 +138,8 @@ export function InterviewChat({ onInsight, apiKey, autoStart = false, fullHeight
   }
 
   return (
-    <div className={`bg-card overflow-hidden flex flex-col ${fullHeight ? "flex-1 rounded-xl border-0" : "rounded-xl border border-border"}`}>
-      <div ref={chatRef} className={`overflow-y-auto p-5 space-y-4 ${fullHeight ? "flex-1" : "h-96"}`}>
+    <div className={`bg-card overflow-hidden flex flex-col ${fullHeight ? "flex-1 min-h-0 rounded-xl border-0" : "rounded-xl border border-border"}`}>
+      <div ref={chatRef} className={`overflow-y-auto p-5 space-y-4 ${fullHeight ? "flex-1 min-h-0" : "h-96"}`}>
         {messages.map((m, i) => (
           <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
             <div
