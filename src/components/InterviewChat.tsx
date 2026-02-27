@@ -5,6 +5,8 @@ import { parseInsights, cleanMessage } from "@/lib/constants";
 import type { Message, Insight } from "@/lib/constants";
 import { toast } from "sonner";
 
+const FIRST_MESSAGE = "Hey — what's the main reason you're thinking of cancelling?";
+
 interface InterviewChatProps {
   onInsight: (insight: Insight) => void;
   apiKey: string;
@@ -30,46 +32,22 @@ export function InterviewChat({ onInsight, apiKey, autoStart = false }: Intervie
     setMessages([]);
     setComplete(false);
     fullTextRef.current = "";
-
     setLoading(true);
-    let assistantSoFar = "";
 
-    streamChat({
-      messages: [],
-      apiKey,
-      onDelta: (chunk) => {
-        assistantSoFar += chunk;
-        fullTextRef.current = assistantSoFar;
-        const cleaned = cleanMessage(assistantSoFar);
-        setMessages((prev) => {
-          const last = prev[prev.length - 1];
-          if (last?.role === "assistant") {
-            return prev.map((m, i) => (i === prev.length - 1 ? { ...m, content: cleaned } : m));
-          }
-          return [...prev, { role: "assistant", content: cleaned }];
-        });
-      },
-      onDone: () => {
-        setLoading(false);
-        const raw = fullTextRef.current;
-        if (raw.includes("[INTERVIEW_COMPLETE]")) {
-          setComplete(true);
-          // Parse internal analytics payload; this is not shown in the chat UI.
-          const insight = parseInsights(raw);
-          if (insight) {
-            onInsight({ ...insight, date: "just now" });
-          }
+    // Show dots briefly, then stream the static first message character by character
+    setTimeout(() => {
+      let i = 0;
+      const interval = setInterval(() => {
+        i++;
+        const partial = FIRST_MESSAGE.slice(0, i);
+        setMessages([{ role: "assistant", content: partial }]);
+        if (i >= FIRST_MESSAGE.length) {
+          clearInterval(interval);
+          setLoading(false);
         }
-      },
-    }).catch((err) => {
-      setLoading(false);
-      toast.error(err.message || "Failed to connect to AI");
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: "Hey there — before you go, we'd be curious to hear what's behind your decision to cancel. What's been on your mind?" },
-      ]);
-    });
-  }, [onInsight]);
+      }, 18);
+    }, 600);
+  }, []);
 
   useEffect(() => {
     if (autoStart && !autoStarted.current) {
