@@ -407,7 +407,7 @@ export function SettingsPage() {
       <div className="bg-card rounded-xl border border-border p-5">
         <h3 className="font-semibold text-sm text-foreground mb-1">Conversation Limits</h3>
         <p className="text-xs text-muted-foreground mb-4">
-          Set how many customer replies the interview should include before wrapping up.
+          Set how many customer replies the interview should include before wrapping up. Choose values from 1 to 10.
         </p>
 
         {configLoading ? (
@@ -436,6 +436,9 @@ export function SettingsPage() {
                   }}
                   className={INPUT_CLS}
                 />
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Guidance only: the AI may wrap earlier if the conversation is already complete.
+                </p>
               </div>
               <div>
                 <label className="text-xs font-medium text-muted-foreground mb-1 block">
@@ -458,12 +461,11 @@ export function SettingsPage() {
                   }}
                   className={INPUT_CLS}
                 />
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Hard cap: the interview will always wrap by this point.
+                </p>
               </div>
             </div>
-
-            <p className={`text-xs ${invalidRange ? "text-destructive" : "text-muted-foreground"}`}>
-              Choose values from 1 to 10. Minimum must be less than or equal to maximum.
-            </p>
 
             <div className="flex items-center gap-2 pt-1">
               <button

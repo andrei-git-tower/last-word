@@ -47,6 +47,18 @@ interface InsightPayload {
   retention_accepted: boolean;
 }
 
+interface NotificationEndpoint {
+  id: string;
+  provider: "webhook" | "slack";
+  target_url: string;
+  signing_secret: string;
+  auth_header_name: string | null;
+  auth_header_value: string | null;
+  event_type: "interview_completed";
+  delivery_mode: "realtime" | "daily" | "weekly";
+  enabled: boolean;
+}
+
 // --- Prompt builder ---
 
 function buildRetentionSection(paths: RetentionPathConfig): string {
@@ -315,7 +327,9 @@ async function saveInsight(
   insight: InsightPayload,
   messages: Array<{ role: string; content: string }>
 ) {
-  const { error: insertError } = await supabase.from("insights").insert({
+  const { data, error: insertError } = await supabase
+    .from("insights")
+    .insert({
     account_id: accountId,
     surface_reason: insight.surface_reason,
     deep_reasons: insight.deep_reasons,
@@ -329,8 +343,185 @@ async function saveInsight(
     retention_path: insight.retention_path,
     retention_accepted: insight.retention_accepted,
     raw_transcript: messages,
-  });
+  })
+    .select("id")
+    .single();
   if (insertError) console.error("Failed to save insight:", insertError);
+  return (data?.id as string | undefined) ?? null;
+}
+
+async function hmacSha256Hex(secret: string, payload: string): Promise<string> {
+  const keyData = new TextEncoder().encode(secret);
+  const payloadData = new TextEncoder().encode(payload);
+  const key = await crypto.subtle.importKey(
+    "raw",
+    keyData,
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
+  const sig = await crypto.subtle.sign("HMAC", key, payloadData);
+  return Array.from(new Uint8Array(sig))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+function buildNotificationEvent(
+  accountId: string,
+  insightId: string | null,
+  insight: InsightPayload
+) {
+  return {
+    event: "interview_completed",
+    account_id: accountId,
+    insight_id: insightId,
+    occurred_at: new Date().toISOString(),
+    insight: {
+      surface_reason: insight.surface_reason,
+      deep_reasons: insight.deep_reasons,
+      category: insight.category,
+      salvageable: insight.salvageable,
+      retention_path: insight.retention_path,
+      key_quote: insight.key_quote,
+      sentiment: insight.sentiment,
+      competitor: insight.competitor,
+      feature_gaps: insight.feature_gaps,
+      usage_duration: insight.usage_duration,
+    },
+  };
+}
+
+function buildSlackPayload(event: ReturnType<typeof buildNotificationEvent>) {
+  const salvageable = event.insight.salvageable ? "Yes" : "No";
+  const deepReasons = event.insight.deep_reasons.length > 0
+    ? event.insight.deep_reasons.join(" | ")
+    : "None provided";
+
+  return {
+    text: `New cancellation interview (${event.insight.category})`,
+    blocks: [
+      {
+        type: "header",
+        text: { type: "plain_text", text: "New cancellation interview", emoji: true },
+      },
+      {
+        type: "section",
+        fields: [
+          { type: "mrkdwn", text: `*Surface reason*\n${event.insight.surface_reason || "N/A"}` },
+          { type: "mrkdwn", text: `*Category*\n${event.insight.category || "other"}` },
+          { type: "mrkdwn", text: `*Salvageable*\n${salvageable}` },
+          { type: "mrkdwn", text: `*Retention path*\n${event.insight.retention_path || "N/A"}` },
+        ],
+      },
+      {
+        type: "section",
+        text: { type: "mrkdwn", text: `*Deep reasons*\n${deepReasons}` },
+      },
+    ],
+  };
+}
+
+async function deliverRealtimeNotifications(
+  supabase: ReturnType<typeof createClient>,
+  accountId: string,
+  insightId: string | null,
+  insight: InsightPayload
+) {
+  const { data: endpoints, error: endpointError } = await supabase
+    .from("notification_endpoints")
+    .select("id, provider, target_url, signing_secret, auth_header_name, auth_header_value, event_type, delivery_mode, enabled")
+    .eq("account_id", accountId)
+    .eq("enabled", true)
+    .eq("event_type", "interview_completed")
+    .eq("delivery_mode", "realtime");
+
+  if (endpointError) {
+    console.error("Failed to load notification endpoints:", endpointError);
+    return;
+  }
+
+  const rows = (endpoints as NotificationEndpoint[] | null) ?? [];
+  if (rows.length === 0) return;
+
+  const event = buildNotificationEvent(accountId, insightId, insight);
+
+  for (const endpoint of rows) {
+    const bodyObject =
+      endpoint.provider === "slack"
+        ? buildSlackPayload(event)
+        : event;
+    const body = JSON.stringify(bodyObject);
+
+    const { data: delivery, error: insertDeliveryError } = await supabase
+      .from("notification_deliveries")
+      .insert({
+        account_id: accountId,
+        endpoint_id: endpoint.id,
+        insight_id: insightId,
+        event_type: "interview_completed",
+        status: "skipped",
+        payload: bodyObject,
+        error_message: "Dispatch pending",
+      })
+      .select("id")
+      .single();
+
+    if (insertDeliveryError || !delivery?.id) {
+      console.error("Failed to create delivery row:", insertDeliveryError);
+      continue;
+    }
+
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      "User-Agent": "last-word-webhook/1.0",
+    };
+
+    if (endpoint.auth_header_name && endpoint.auth_header_value) {
+      headers[endpoint.auth_header_name] = endpoint.auth_header_value;
+    }
+
+    if (endpoint.signing_secret) {
+      const signature = await hmacSha256Hex(endpoint.signing_secret, body);
+      headers["x-lastword-signature"] = `sha256=${signature}`;
+    }
+
+    const start = Date.now();
+    let timeout: number | undefined;
+    try {
+      const controller = new AbortController();
+      timeout = setTimeout(() => controller.abort(), 5000);
+      const resp = await fetch(endpoint.target_url, {
+        method: "POST",
+        headers,
+        body,
+        signal: controller.signal,
+      });
+      if (timeout) clearTimeout(timeout);
+
+      const responseBody = await resp.text();
+      await supabase
+        .from("notification_deliveries")
+        .update({
+          status: resp.ok ? "success" : "failed",
+          http_status: resp.status,
+          duration_ms: Date.now() - start,
+          error_message: resp.ok ? null : `HTTP ${resp.status}`,
+          response_body: responseBody.slice(0, 2000),
+        })
+        .eq("id", delivery.id);
+    } catch (err) {
+      if (timeout) clearTimeout(timeout);
+      const message = err instanceof Error ? err.message : "Unknown webhook error";
+      await supabase
+        .from("notification_deliveries")
+        .update({
+          status: "failed",
+          duration_ms: Date.now() - start,
+          error_message: message,
+        })
+        .eq("id", delivery.id);
+    }
+  }
 }
 
 // --- Main handler ---
@@ -455,7 +646,10 @@ serve(async (req) => {
         : "";
 
       const { text: finalText, insight } = forceFinalTranscript(generatedText, messages);
-      await saveInsight(supabase, accountId, insight, messages);
+      const insightId = await saveInsight(supabase, accountId, insight, messages);
+      void deliverRealtimeNotifications(supabase, accountId, insightId, insight).catch((e) => {
+        console.error("Notification dispatch error:", e);
+      });
 
       return new Response(textToAnthropicSSE(finalText), {
         headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
@@ -524,7 +718,10 @@ serve(async (req) => {
         const fullText = extractTextFromSSE(accumulated);
         if (fullText.includes("[INTERVIEW_COMPLETE]")) {
           const insight = normalizeInsightPayload(parseInsight(fullText), messages);
-          await saveInsight(supabase, accountId, insight, messages);
+          const insightId = await saveInsight(supabase, accountId, insight, messages);
+          void deliverRealtimeNotifications(supabase, accountId, insightId, insight).catch((e) => {
+            console.error("Notification dispatch error:", e);
+          });
         }
       } catch (e) {
         console.error("Stream processing error:", e);
