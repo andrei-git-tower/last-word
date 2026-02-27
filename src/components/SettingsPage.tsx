@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -12,6 +12,16 @@ type Competitor = {
 
 const INPUT_CLS =
   "w-full text-sm bg-background border border-border rounded-lg px-3 py-2 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20";
+const LIMIT_UI_MIN = 1;
+const LIMIT_UI_MAX = 10;
+const DEFAULT_MIN_EXCHANGES = 3;
+const DEFAULT_MAX_EXCHANGES = 5;
+
+function normalizeNumericInput(value: string): string {
+  if (value === "") return "";
+  if (!/^\d+$/.test(value)) return "";
+  return String(parseInt(value, 10));
+}
 
 function QuestionsEditor({
   questions,
@@ -263,7 +273,26 @@ function AddCompetitorForm({ onCancel }: { onCancel: () => void }) {
 }
 
 export function SettingsPage() {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
+  const [minExchangesInput, setMinExchangesInput] = useState(String(DEFAULT_MIN_EXCHANGES));
+  const [maxExchangesInput, setMaxExchangesInput] = useState(String(DEFAULT_MAX_EXCHANGES));
+  const [savingLimits, setSavingLimits] = useState(false);
+
+  const { data: config, isLoading: configLoading } = useQuery({
+    queryKey: ["config"],
+    enabled: !!user?.id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("configs")
+        .select("id, product_name, product_description, competitors, plans, retention_paths, min_exchanges, max_exchanges")
+        .eq("account_id", user!.id)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
 
   const { data: competitors, isLoading } = useQuery({
     queryKey: ["competitors"],
@@ -277,8 +306,141 @@ export function SettingsPage() {
     },
   });
 
+  useEffect(() => {
+    if (!config) return;
+    setMinExchangesInput(String(config.min_exchanges ?? DEFAULT_MIN_EXCHANGES));
+    setMaxExchangesInput(String(config.max_exchanges ?? DEFAULT_MAX_EXCHANGES));
+  }, [config]);
+
+  const minExchanges = Number.parseInt(minExchangesInput, 10);
+  const maxExchanges = Number.parseInt(maxExchangesInput, 10);
+  const minIsNumber = Number.isInteger(minExchanges);
+  const maxIsNumber = Number.isInteger(maxExchanges);
+  const minOutOfRange = minExchanges < LIMIT_UI_MIN || minExchanges > LIMIT_UI_MAX;
+  const maxOutOfRange = maxExchanges < LIMIT_UI_MIN || maxExchanges > LIMIT_UI_MAX;
+  const invalidRange = !minIsNumber || !maxIsNumber || minOutOfRange || maxOutOfRange || minExchanges > maxExchanges;
+  const savedMin = config?.min_exchanges ?? DEFAULT_MIN_EXCHANGES;
+  const savedMax = config?.max_exchanges ?? DEFAULT_MAX_EXCHANGES;
+  const limitsChanged = minExchanges !== savedMin || maxExchanges !== savedMax;
+
+  async function saveConversationLimits() {
+    if (!user?.id) return;
+    if (invalidRange) {
+      toast.error("Enter a valid range: 1-10 and min must be less than or equal to max.");
+      return;
+    }
+
+    setSavingLimits(true);
+    const payload = {
+      account_id: user.id,
+      product_name: config?.product_name ?? "our product",
+      product_description: config?.product_description ?? "",
+      competitors: config?.competitors ?? [],
+      plans: config?.plans ?? [],
+      retention_paths: config?.retention_paths ?? { offboard_gracefully: { enabled: true } },
+      min_exchanges: minExchanges,
+      max_exchanges: maxExchanges,
+      updated_at: new Date().toISOString(),
+    };
+
+    const { error } = await supabase
+      .from("configs")
+      .upsert(payload, { onConflict: "account_id" });
+    setSavingLimits(false);
+
+    if (error) {
+      toast.error("Failed to save conversation limits.");
+      return;
+    }
+
+    toast.success("Conversation limits saved.");
+    queryClient.invalidateQueries({ queryKey: ["config"] });
+  }
+
   return (
     <div className="max-w-2xl mx-auto space-y-4">
+      <div className="bg-card rounded-xl border border-border p-5">
+        <h3 className="font-semibold text-sm text-foreground mb-1">Conversation Limits</h3>
+        <p className="text-xs text-muted-foreground mb-4">
+          Set how many customer replies the interview should include before wrapping up.
+        </p>
+
+        {configLoading ? (
+          <div className="text-sm text-muted-foreground">Loading...</div>
+        ) : (
+          <div className="space-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                  Minimum customer replies before wrap-up
+                </label>
+                <input
+                  type="number"
+                  min={LIMIT_UI_MIN}
+                  max={LIMIT_UI_MAX}
+                  value={minExchangesInput}
+                  onChange={(e) => {
+                    const raw = e.target.value;
+                    if (raw === "") {
+                      setMinExchangesInput("");
+                      return;
+                    }
+                    if (/^\d+$/.test(raw)) {
+                      setMinExchangesInput(normalizeNumericInput(raw));
+                    }
+                  }}
+                  className={INPUT_CLS}
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                  Maximum customer replies before wrap-up
+                </label>
+                <input
+                  type="number"
+                  min={LIMIT_UI_MIN}
+                  max={LIMIT_UI_MAX}
+                  value={maxExchangesInput}
+                  onChange={(e) => {
+                    const raw = e.target.value;
+                    if (raw === "") {
+                      setMaxExchangesInput("");
+                      return;
+                    }
+                    if (/^\d+$/.test(raw)) {
+                      setMaxExchangesInput(normalizeNumericInput(raw));
+                    }
+                  }}
+                  className={INPUT_CLS}
+                />
+              </div>
+            </div>
+
+            <p className={`text-xs ${invalidRange ? "text-destructive" : "text-muted-foreground"}`}>
+              Choose values from 1 to 10. Minimum must be less than or equal to maximum.
+            </p>
+
+            <div className="flex items-center gap-2 pt-1">
+              <button
+                onClick={saveConversationLimits}
+                disabled={savingLimits || invalidRange || !limitsChanged}
+                className="px-3 py-1.5 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
+              >
+                {savingLimits ? "Saving..." : "Save limits"}
+              </button>
+              {limitsChanged && !invalidRange && (
+                <span className="text-xs text-muted-foreground">Unsaved changes</span>
+              )}
+              {!limitsChanged && !invalidRange && (
+                <span className="text-xs text-muted-foreground">
+                  Current setting: {savedMin}-{savedMax} customer replies
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
       <div className="bg-card rounded-xl border border-border p-5">
         <h3 className="font-semibold text-sm text-foreground mb-1">Competitors</h3>
         <p className="text-xs text-muted-foreground mb-4">

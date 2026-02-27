@@ -71,7 +71,7 @@ const PAGE_TITLES: Record<Tab, { title: string; description: string }> = {
   interview: { title: "Test Interview", description: "Preview the exit interview your customers will experience." },
   setup: { title: "Setup", description: "Install the widget and configure your integration." },
   branding: { title: "Branding", description: "Scrape your website to tailor the interview experience to your brand." },
-  settings: { title: "Settings", description: "Manage competitors and other account preferences." },
+  settings: { title: "Settings", description: "Manage conversation limits, competitors, and account preferences." },
 };
 
 export default function DashboardPage() {

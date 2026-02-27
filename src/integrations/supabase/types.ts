@@ -45,6 +45,8 @@ export type Database = {
           plans: Json
           retention_paths: Json
           brand_prompt: string
+          min_exchanges: number
+          max_exchanges: number
           updated_at: string
         }
         Insert: {
@@ -56,6 +58,8 @@ export type Database = {
           plans?: Json
           retention_paths?: Json
           brand_prompt?: string
+          min_exchanges?: number
+          max_exchanges?: number
           updated_at?: string
         }
         Update: {
@@ -67,6 +71,8 @@ export type Database = {
           plans?: Json
           retention_paths?: Json
           brand_prompt?: string
+          min_exchanges?: number
+          max_exchanges?: number
           updated_at?: string
         }
         Relationships: []
