@@ -25,6 +25,7 @@ export function RulesBuilder() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [editorOpen, setEditorOpen] = useState(false);
+  const [editingRule, setEditingRule] = useState<Rule | undefined>(undefined);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
@@ -89,6 +90,11 @@ export function RulesBuilder() {
     deleteMutation.mutate(id);
   }
 
+  function handleEdit(rule: Rule) {
+    setEditingRule(rule);
+    setEditorOpen(true);
+  }
+
   return (
     <div className="max-w-2xl mx-auto space-y-4">
       {/* Header row */}
@@ -100,7 +106,7 @@ export function RulesBuilder() {
           </p>
         </div>
         <button
-          onClick={() => setEditorOpen(true)}
+          onClick={() => { setEditingRule(undefined); setEditorOpen(true); }}
           className="flex items-center gap-2 px-3 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:opacity-90 transition-opacity shrink-0"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -141,6 +147,7 @@ export function RulesBuilder() {
                   key={rule.id}
                   rule={rule}
                   onDelete={handleDelete}
+                  onEdit={handleEdit}
                 />
               ))}
             </div>
@@ -150,9 +157,10 @@ export function RulesBuilder() {
 
       <RuleEditorDialog
         open={editorOpen}
-        onClose={() => setEditorOpen(false)}
+        onClose={() => { setEditorOpen(false); setEditingRule(undefined); }}
         onSaved={() => queryClient.invalidateQueries({ queryKey: ["rules"] })}
         nextPriority={rules.length}
+        editingRule={editingRule}
       />
     </div>
   );

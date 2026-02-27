@@ -19,6 +19,20 @@ interface UserContext {
   mrr?: number;
 }
 
+interface RuleCondition {
+  variable: "plan" | "account_age" | "seats" | "mrr" | "email";
+  operator: "==" | "!=" | ">" | "<" | ">=" | "<=" | "contains";
+  value: string | number;
+}
+
+interface Rule {
+  id: string;
+  priority: number;
+  condition_logic: "AND" | "OR";
+  conditions: RuleCondition[];
+  prompt_addition: string;
+}
+
 interface Plan {
   name: string;
   price: string;
@@ -132,7 +146,38 @@ function buildRetentionSection(paths: RetentionPathConfig): string {
   return sections.join("\n\n");
 }
 
-function buildSystemPrompt(config: AccountConfig, userTurns: number, userContext?: UserContext | null): string {
+function matchRule(rules: Rule[], ctx: UserContext | null): string | null {
+  if (!ctx || rules.length === 0) return null;
+
+  for (const rule of rules) {
+    const results = rule.conditions.map((c) => {
+      const actual = (ctx as Record<string, unknown>)[c.variable];
+      if (actual === undefined || actual === null) return false;
+      const val = c.value;
+      switch (c.operator) {
+        case "==": return String(actual) === String(val);
+        case "!=": return String(actual) !== String(val);
+        case ">":  return Number(actual) > Number(val);
+        case "<":  return Number(actual) < Number(val);
+        case ">=": return Number(actual) >= Number(val);
+        case "<=": return Number(actual) <= Number(val);
+        case "contains": return String(actual).toLowerCase().includes(String(val).toLowerCase());
+        default: return false;
+      }
+    });
+
+    const matched = rule.conditions.length === 0
+      ? false
+      : rule.condition_logic === "AND"
+        ? results.every(Boolean)
+        : results.some(Boolean);
+
+    if (matched) return rule.prompt_addition;
+  }
+  return null;
+}
+
+function buildSystemPrompt(config: AccountConfig, userTurns: number, userContext?: UserContext | null, ruleInjection?: string | null): string {
   const {
     product_name,
     product_description,
@@ -168,9 +213,12 @@ function buildSystemPrompt(config: AccountConfig, userTurns: number, userContext
     : "You are an expert copywriter. Keep the tone casual and human — like a quick Slack message, not a corporate email.";
 
   const userContextBlock = buildUserContextBlock(userContext);
+  const ruleInjectionBlock = ruleInjection
+    ? `\n## Account-Specific Guidance\n${ruleInjection}`
+    : "";
 
   return `${brandVoiceSection}
-${userContextBlock ? `\n${userContextBlock}\n` : ""}
+${userContextBlock ? `\n${userContextBlock}\n` : ""}${ruleInjectionBlock}
 
 You are a friendly exit interview AI for ${product_name}. Your job is to understand WHY a customer is cancelling — not the surface reason, but the real story.
 
@@ -688,7 +736,16 @@ serve(async (req) => {
       config.max_exchanges = config.min_exchanges;
     }
 
-    const systemPrompt = buildSystemPrompt(config, userTurns, userContext);
+    const { data: rulesRows } = await supabase
+      .from("rules")
+      .select("id, priority, condition_logic, conditions, prompt_addition")
+      .eq("account_id", accountId)
+      .order("priority", { ascending: true });
+
+    const rules: Rule[] = (rulesRows ?? []) as Rule[];
+    const ruleInjection = matchRule(rules, userContext);
+
+    const systemPrompt = buildSystemPrompt(config, userTurns, userContext, ruleInjection);
     const hardStopReached = userTurns >= config.max_exchanges;
 
     const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");

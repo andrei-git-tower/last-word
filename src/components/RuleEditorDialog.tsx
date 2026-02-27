@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -48,33 +48,63 @@ interface Props {
   onClose: () => void;
   onSaved: () => void;
   nextPriority: number;
+  editingRule?: import("@/types/rules").Rule;
 }
 
-export function RuleEditorDialog({ open, onClose, onSaved, nextPriority }: Props) {
+export function RuleEditorDialog({ open, onClose, onSaved, nextPriority, editingRule }: Props) {
   const { user } = useAuth();
   const [name, setName] = useState("");
   const [conditionLogic, setConditionLogic] = useState<"AND" | "OR">("AND");
   const [conditions, setConditions] = useState<Condition[]>([emptyCondition()]);
   const [promptAddition, setPromptAddition] = useState("");
 
+  // Populate fields when opening for edit
+  useEffect(() => {
+    if (open && editingRule) {
+      setName(editingRule.name);
+      setConditionLogic(editingRule.condition_logic);
+      setConditions(editingRule.conditions);
+      setPromptAddition(editingRule.prompt_addition ?? "");
+    } else if (open && !editingRule) {
+      setName("");
+      setConditionLogic("AND");
+      setConditions([emptyCondition()]);
+      setPromptAddition("");
+    }
+  }, [open, editingRule]);
+
   const saveMutation = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from("rules").insert({
-        account_id: user!.id,
-        name: name.trim(),
-        priority: nextPriority,
-        condition_logic: conditionLogic,
-        conditions: conditions as unknown as import("@/integrations/supabase/types").Json,
-        prompt_addition: promptAddition.trim(),
-      });
-      if (error) throw error;
+      if (editingRule) {
+        const { error } = await supabase
+          .from("rules")
+          .update({
+            name: name.trim(),
+            condition_logic: conditionLogic,
+            conditions: conditions as unknown as import("@/integrations/supabase/types").Json,
+            prompt_addition: promptAddition.trim(),
+          })
+          .eq("id", editingRule.id)
+          .eq("account_id", user!.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("rules").insert({
+          account_id: user!.id,
+          name: name.trim(),
+          priority: nextPriority,
+          condition_logic: conditionLogic,
+          conditions: conditions as unknown as import("@/integrations/supabase/types").Json,
+          prompt_addition: promptAddition.trim(),
+        });
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
-      toast.success("Rule saved");
+      toast.success(editingRule ? "Rule updated" : "Rule saved");
       onSaved();
       handleClose();
     },
-    onError: () => toast.error("Failed to save rule"),
+    onError: () => toast.error(editingRule ? "Failed to update rule" : "Failed to save rule"),
   });
 
   function handleClose() {
@@ -121,7 +151,7 @@ export function RuleEditorDialog({ open, onClose, onSaved, nextPriority }: Props
       <div className="bg-card rounded-2xl border border-border shadow-xl w-full max-w-lg mx-4 flex flex-col max-h-[90vh]">
         {/* Header */}
         <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-border shrink-0">
-          <h2 className="text-base font-semibold text-foreground">New Rule</h2>
+          <h2 className="text-base font-semibold text-foreground">{editingRule ? "Edit Rule" : "New Rule"}</h2>
           <button
             onClick={handleClose}
             className="text-muted-foreground hover:text-foreground transition-colors"
@@ -280,7 +310,7 @@ export function RuleEditorDialog({ open, onClose, onSaved, nextPriority }: Props
             onClick={() => saveMutation.mutate()}
             className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {saveMutation.isPending ? "Saving…" : "Save rule"}
+            {saveMutation.isPending ? "Saving…" : editingRule ? "Update rule" : "Save rule"}
           </button>
         </div>
       </div>

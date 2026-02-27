@@ -5,6 +5,7 @@ import type { Rule } from "@/types/rules";
 interface RuleCardProps {
   rule: Rule;
   onDelete: (id: string) => void;
+  onEdit: (rule: Rule) => void;
 }
 
 function conditionSummary(rule: Rule): string {
@@ -15,7 +16,7 @@ function conditionSummary(rule: Rule): string {
   return parts.join(` ${rule.condition_logic} `);
 }
 
-export function RuleCard({ rule, onDelete }: RuleCardProps) {
+export function RuleCard({ rule, onDelete, onEdit }: RuleCardProps) {
   const {
     attributes,
     listeners,
@@ -80,6 +81,16 @@ export function RuleCard({ rule, onDelete }: RuleCardProps) {
 
       {/* Actions */}
       <div className="flex items-center gap-1 shrink-0">
+        <button
+          onClick={() => onEdit(rule)}
+          className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+          aria-label="Edit rule"
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+          </svg>
+        </button>
         <button
           onClick={() => onDelete(rule.id)}
           className="p-1.5 rounded-lg text-muted-foreground hover:text-red-500 hover:bg-red-50 transition-colors"
