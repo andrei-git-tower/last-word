@@ -28,6 +28,8 @@ interface AccountConfig {
   competitors: string[];
   plans: Plan[];
   retention_paths: RetentionPathConfig;
+  min_exchanges: number;
+  max_exchanges: number;
 }
 
 // --- Prompt builder ---
@@ -64,14 +66,35 @@ function buildRetentionSection(paths: RetentionPathConfig): string {
   return sections.join("\n\n");
 }
 
-function buildSystemPrompt(config: AccountConfig): string {
-  const { product_name, product_description, competitors, plans, retention_paths } = config;
+function buildSystemPrompt(config: AccountConfig, userTurns: number): string {
+  const {
+    product_name,
+    product_description,
+    competitors,
+    plans,
+    retention_paths,
+    min_exchanges,
+    max_exchanges,
+  } = config;
 
   const competitorList =
     competitors.length > 0 ? competitors.join(", ") : "other tools in the market";
 
   const planList =
     plans.length > 0 ? plans.map((p) => `${p.name} (${p.price})`).join(", ") : "";
+
+  const turnRules =
+    userTurns < min_exchanges
+      ? `- Customer turns so far: ${userTurns}
+- Turn policy: keep probing. Do NOT wrap up yet and do NOT include [INTERVIEW_COMPLETE] yet.`
+      : userTurns >= max_exchanges
+      ? `- Customer turns so far: ${userTurns}
+- Turn policy: hard limit reached. Wrap up now in this message.
+- Do not ask a follow-up question.
+- Include [INTERVIEW_COMPLETE] and [INSIGHTS] now.`
+      : `- Customer turns so far: ${userTurns}
+- Turn policy: you may continue probing OR wrap up if you already have enough signal.
+- If you choose to continue, ask exactly one follow-up question.`;
 
   return `You are a friendly exit interview AI for ${product_name}. Your job is to understand WHY a customer is cancelling — not the surface reason, but the real story.
 
@@ -97,12 +120,15 @@ FORMAT:
 - Good example: "Ah makes sense — was it the price itself or more that it didn't feel worth it for what you use?"
 
 FLOW:
-- 3-5 exchanges total, then wrap up
+- Keep the conversation within ${min_exchanges}-${max_exchanges} customer turns, then wrap up
 - Go deeper on vague answers — "too expensive", "not using it", "found something better" always have a real story
 - For "too expensive": is it absolute price, value perception, budget change, team size, wrong tier?
 - For "better alternative": WHICH tool? WHAT specifically made them switch?
 - For "features": what specific workflow broke down?
 - For "technical issues": what broke, how often, how bad?
+
+## Turn Guardrails
+${turnRules}
 
 ## Retention Paths
 Based on what you learn, determine which path fits. NEVER offer a discount.
@@ -110,7 +136,7 @@ Based on what you learn, determine which path fits. NEVER offer a discount.
 ${buildRetentionSection(retention_paths)}
 
 ## Ending the Conversation
-After 3-5 exchanges, wrap up naturally. End your final message with [INTERVIEW_COMPLETE].
+After ${min_exchanges}-${max_exchanges} customer turns, wrap up naturally. End your final message with [INTERVIEW_COMPLETE].
 IMPORTANT: [INTERVIEW_COMPLETE] must ONLY appear in a message that contains no question. If your message ends with a question mark, do not include [INTERVIEW_COMPLETE] — ask your question first, wait for the answer, then wrap up.
 
 Then include a structured data block:
@@ -133,6 +159,19 @@ Then include a structured data block:
 
 ## Start
 Greet them casually and ask what's leading them to cancel. Keep it short.`;
+}
+
+function clampExchangeLimit(value: unknown, fallback: number): number {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return fallback;
+  const rounded = Math.floor(n);
+  if (rounded < 1) return 1;
+  if (rounded > 20) return 20;
+  return rounded;
+}
+
+function countUserTurns(messages: Array<{ role: string; content: string }>): number {
+  return messages.filter((m) => m.role === "user" && String(m.content ?? "").trim().toLowerCase() !== "start").length;
 }
 
 // --- SSE helpers ---
@@ -209,23 +248,33 @@ serve(async (req) => {
       .eq("account_id", accountId)
       .single();
 
+    const { messages: rawMessages } = await req.json();
+    const messages = rawMessages.length > 0 ? rawMessages : [{ role: "user", content: "start" }];
+    const userTurns = countUserTurns(messages);
+
     const config: AccountConfig = configRow ? {
       product_name: configRow.product_name,
       product_description: configRow.product_description,
       competitors: configRow.competitors ?? [],
       plans: (configRow.plans as Plan[]) ?? [],
       retention_paths: (configRow.retention_paths as RetentionPathConfig) ?? {},
+      min_exchanges: clampExchangeLimit(configRow.min_exchanges, 3),
+      max_exchanges: clampExchangeLimit(configRow.max_exchanges, 5),
     } : {
       product_name: "our product",
       product_description: "A SaaS product. No specific details configured yet.",
       competitors: [],
       plans: [],
       retention_paths: { offboard_gracefully: { enabled: true } },
+      min_exchanges: 3,
+      max_exchanges: 5,
     };
 
-    const systemPrompt = buildSystemPrompt(config);
-    const { messages: rawMessages } = await req.json();
-    const messages = rawMessages.length > 0 ? rawMessages : [{ role: "user", content: "start" }];
+    if (config.min_exchanges > config.max_exchanges) {
+      config.max_exchanges = config.min_exchanges;
+    }
+
+    const systemPrompt = buildSystemPrompt(config, userTurns);
 
     const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
     if (!ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is not configured");
