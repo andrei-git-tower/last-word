@@ -276,6 +276,21 @@ export function SettingsPage() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
+
+  const { data: account } = useQuery({
+    queryKey: ["account"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("accounts")
+        .select("api_key")
+        .single();
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const apiKey = account?.api_key ?? "";
+  const maskedApiKey = apiKey ? apiKey.slice(0, 3) + "•".repeat(apiKey.length - 3) : "";
   const [minExchangesInput, setMinExchangesInput] = useState(String(DEFAULT_MIN_EXCHANGES));
   const [maxExchangesInput, setMaxExchangesInput] = useState(String(DEFAULT_MAX_EXCHANGES));
   const [savingLimits, setSavingLimits] = useState(false);
@@ -613,6 +628,22 @@ export function SettingsPage() {
             </div>
           </div>
         )}
+      </div>
+
+      <div className="bg-card rounded-xl border border-border p-5">
+        <h3 className="font-semibold text-sm text-foreground mb-1">API Key</h3>
+        <p className="text-xs text-muted-foreground mb-3">Used in your script tag. Keep this private.</p>
+        <div className="flex items-center gap-2">
+          <code className="flex-1 text-sm bg-secondary rounded-lg px-4 py-2.5 font-mono text-foreground truncate">
+            {maskedApiKey || "Loading..."}
+          </code>
+          <button
+            onClick={() => { navigator.clipboard.writeText(apiKey); toast.success("API key copied"); }}
+            className="shrink-0 px-3 py-2.5 bg-secondary text-muted-foreground rounded-lg text-xs hover:text-foreground transition-colors"
+          >
+            Copy
+          </button>
+        </div>
       </div>
 
       <div className="bg-card rounded-xl border border-border p-5">

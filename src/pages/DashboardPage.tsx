@@ -193,7 +193,9 @@ export default function DashboardPage() {
   }
 
   const apiKey = account?.api_key ?? "";
+  const maskedApiKey = apiKey ? apiKey.slice(0, 3) + "•".repeat(apiKey.length - 3) : "";
   const scriptTag = `<script src="${APP_URL}/widget.js" data-api-key="${apiKey}"></script>`;
+  const maskedScriptTag = `<script src="${APP_URL}/widget.js" data-api-key="${maskedApiKey}"></script>`;
   const triggerSnippet = `document.getElementById('cancel-btn').addEventListener('click', () => {\n  window.LastWord.open();\n});`;
   const userContextSnippet = `window.LastWord.open({\n  email:       currentUser.email,\n  plan:        currentUser.planName,   // e.g. "pro"\n  account_age: currentUser.daysOld,    // days since signup\n  seats:       currentUser.seats,      // number of seats\n  mrr:         currentUser.mrr,        // monthly spend in USD\n});`;
 
@@ -382,22 +384,6 @@ export default function DashboardPage() {
             <div className="max-w-2xl mx-auto space-y-4">
 
               <div className="bg-card rounded-xl border border-border p-5">
-                <h3 className="font-semibold text-sm text-foreground mb-1">Your API Key</h3>
-                <p className="text-xs text-muted-foreground mb-3">Keep this private — it identifies your account.</p>
-                <div className="flex items-center gap-2">
-                  <code className="flex-1 text-sm bg-secondary rounded-lg px-4 py-2.5 font-mono text-foreground truncate tracking-widest">
-                    {apiKey ? "•".repeat(32) : "Loading..."}
-                  </code>
-                  <button
-                    onClick={() => copy(apiKey, "API key")}
-                    className="shrink-0 px-3 py-2.5 bg-secondary text-muted-foreground rounded-lg text-xs hover:text-foreground transition-colors"
-                  >
-                    Copy
-                  </button>
-                </div>
-              </div>
-
-              <div className="bg-card rounded-xl border border-border p-5">
                 <h3 className="font-semibold text-sm text-foreground mb-1">Add to your cancellation page</h3>
                 <p className="text-sm text-muted-foreground mb-4">
                   Paste the script tag, then call{" "}
@@ -417,7 +403,7 @@ export default function DashboardPage() {
                       </button>
                     </div>
                     <pre className="text-xs bg-secondary rounded-lg px-4 py-3 font-mono text-foreground overflow-x-auto whitespace-pre-wrap break-all">
-                      {scriptTag}
+                      {maskedScriptTag}
                     </pre>
                   </div>
 
