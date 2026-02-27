@@ -43,8 +43,8 @@
     const iframe = document.createElement("iframe");
     iframe.src = baseUrl + "/widget?key=" + encodeURIComponent(apiKey);
     Object.assign(iframe.style, {
-      width: "min(480px, calc(100vw - 32px))",
-      height: "min(620px, calc(100vh - 64px))",
+      width: "min(408px, calc(100vw - 32px))",
+      height: "min(527px, calc(100vh - 64px))",
       border: "none",
       borderRadius: "16px",
       background: "white",

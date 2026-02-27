@@ -154,13 +154,11 @@ export function SurveyChat({ onInsight, apiKey, autoStart = false, primaryColor,
             if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) submitAnswer();
           }}
           placeholder="Type your answer here..."
-          rows={5}
+          rows={7}
           disabled={loading}
-          className="w-full text-sm bg-secondary/40 border border-border rounded-xl px-4 py-3 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 resize-none disabled:opacity-50"
+          className="flex-1 w-full text-sm bg-secondary/40 border border-border rounded-xl px-4 py-3 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 resize-none disabled:opacity-50"
           style={{ focusRingColor: accentColor } as React.CSSProperties}
         />
-
-        <div className="flex-1" />
       </div>
 
       {/* Next button */}
