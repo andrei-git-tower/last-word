@@ -32,19 +32,13 @@ export function SurveyChat({ onInsight, apiKey, autoStart = false, primaryColor,
     setMessages([]);
     setComplete(false);
     setCurrentAnswer("");
+    setCurrentQuestion("");
     fullTextRef.current = "";
     setLoading(true);
 
     setTimeout(() => {
-      let i = 0;
-      const interval = setInterval(() => {
-        i++;
-        setCurrentQuestion(FIRST_MESSAGE.slice(0, i));
-        if (i >= FIRST_MESSAGE.length) {
-          clearInterval(interval);
-          setLoading(false);
-        }
-      }, 18);
+      setCurrentQuestion(FIRST_MESSAGE);
+      setLoading(false);
     }, 600);
   }, []);
 
@@ -80,11 +74,9 @@ export function SurveyChat({ onInsight, apiKey, autoStart = false, primaryColor,
       onDelta: (chunk) => {
         assistantSoFar += chunk;
         fullTextRef.current = assistantSoFar;
-        const cleaned = cleanMessage(assistantSoFar);
-        setCurrentQuestion(cleaned);
+        // Accumulate silently — question updates only when fully received
       },
       onDone: () => {
-        setLoading(false);
         const raw = fullTextRef.current;
         if (raw.includes("[INTERVIEW_COMPLETE]")) {
           setComplete(true);
@@ -92,7 +84,10 @@ export function SurveyChat({ onInsight, apiKey, autoStart = false, primaryColor,
           if (insight) {
             onInsight({ ...insight, date: "just now" });
           }
+        } else {
+          setCurrentQuestion(cleanMessage(raw));
         }
+        setLoading(false);
       },
     }).catch((err) => {
       setLoading(false);
@@ -136,17 +131,17 @@ export function SurveyChat({ onInsight, apiKey, autoStart = false, primaryColor,
   }
 
   return (
-    <div className="h-full flex flex-col px-6 py-8" style={fontFamily ? { fontFamily } : undefined}>
+    <div className="h-full flex flex-col px-6 pt-4 pb-4" style={fontFamily ? { fontFamily } : undefined}>
       {/* Question */}
-      <div className="flex-1 flex flex-col justify-center">
+      <div className="flex-1 flex flex-col">
         {loading && !currentQuestion ? (
-          <div className="flex gap-1 mb-8">
+          <div className="flex gap-1 mb-3">
             <span className="text-2xl text-muted-foreground animate-bounce" style={{ animationDelay: "0ms" }}>·</span>
             <span className="text-2xl text-muted-foreground animate-bounce" style={{ animationDelay: "150ms" }}>·</span>
             <span className="text-2xl text-muted-foreground animate-bounce" style={{ animationDelay: "300ms" }}>·</span>
           </div>
         ) : (
-          <p className="text-xl font-semibold text-foreground mb-8 leading-snug">
+          <p className="text-xl font-semibold text-foreground mb-3 leading-snug">
             {currentQuestion}
           </p>
         )}
@@ -159,15 +154,17 @@ export function SurveyChat({ onInsight, apiKey, autoStart = false, primaryColor,
             if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) submitAnswer();
           }}
           placeholder="Type your answer here..."
-          rows={4}
+          rows={5}
           disabled={loading}
           className="w-full text-sm bg-secondary/40 border border-border rounded-xl px-4 py-3 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 resize-none disabled:opacity-50"
           style={{ focusRingColor: accentColor } as React.CSSProperties}
         />
+
+        <div className="flex-1" />
       </div>
 
       {/* Next button */}
-      <div className="flex justify-end pt-4">
+      <div className="flex justify-end pt-2">
         <button
           onClick={submitAnswer}
           disabled={loading || !currentAnswer.trim()}
