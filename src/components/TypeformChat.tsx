@@ -40,6 +40,8 @@ export function TypeformChat({
   const autoStarted = useRef(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const insightIdRef = useRef<string | null>(null);
+  const userContextRef = useRef(userContext);
+  userContextRef.current = userContext;
 
   const accentColor = buttonColor || primaryColor || "#2563eb";
 
@@ -78,13 +80,26 @@ export function TypeformChat({
     fullTextRef.current = "";
     insightIdRef.current = null;
     setPhase("entering");
-    setTimeout(() => {
-      setCurrentQuestion(FIRST_MESSAGE);
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => setPhase("visible"));
-      });
-    }, 500);
-  }, []);
+    setLoading(true);
+
+    let assistantSoFar = "";
+    streamChat({
+      messages: [],
+      apiKey,
+      userContext: userContextRef.current,
+      insightId: insightIdRef.current,
+      onInsightId: (id) => { insightIdRef.current = id; },
+      onDelta: (chunk) => {
+        assistantSoFar += chunk;
+        fullTextRef.current = assistantSoFar;
+      },
+      onDone: () => {
+        animateIn(cleanMessage(fullTextRef.current) || FIRST_MESSAGE);
+      },
+    }).catch(() => {
+      animateIn(FIRST_MESSAGE);
+    });
+  }, [apiKey]);
 
   useEffect(() => {
     if (autoStart && !autoStarted.current) {
@@ -111,7 +126,7 @@ export function TypeformChat({
     streamChat({
       messages: updatedMessages.map((m) => ({ role: m.role, content: m.content })),
       apiKey,
-      userContext,
+      userContext: userContextRef.current,
       insightId: insightIdRef.current,
       onInsightId: (id) => { insightIdRef.current = id; },
       onDelta: (chunk) => {

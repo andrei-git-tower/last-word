@@ -27,6 +27,8 @@ export function SurveyChat({ onInsight, apiKey, autoStart = false, primaryColor,
   const fullTextRef = useRef("");
   const autoStarted = useRef(false);
   const insightIdRef = useRef<string | null>(null);
+  const userContextRef = useRef(userContext);
+  userContextRef.current = userContext;
 
   const accentColor = buttonColor || primaryColor || "#2563eb";
 
@@ -40,11 +42,26 @@ export function SurveyChat({ onInsight, apiKey, autoStart = false, primaryColor,
     insightIdRef.current = null;
     setLoading(true);
 
-    setTimeout(() => {
+    let assistantSoFar = "";
+    streamChat({
+      messages: [],
+      apiKey,
+      userContext: userContextRef.current,
+      insightId: insightIdRef.current,
+      onInsightId: (id) => { insightIdRef.current = id; },
+      onDelta: (chunk) => {
+        assistantSoFar += chunk;
+        fullTextRef.current = assistantSoFar;
+      },
+      onDone: () => {
+        setCurrentQuestion(cleanMessage(fullTextRef.current) || FIRST_MESSAGE);
+        setLoading(false);
+      },
+    }).catch(() => {
       setCurrentQuestion(FIRST_MESSAGE);
       setLoading(false);
-    }, 600);
-  }, []);
+    });
+  }, [apiKey]);
 
   useEffect(() => {
     if (autoStart && !autoStarted.current) {
@@ -75,7 +92,7 @@ export function SurveyChat({ onInsight, apiKey, autoStart = false, primaryColor,
     streamChat({
       messages: allMessages,
       apiKey,
-      userContext,
+      userContext: userContextRef.current,
       insightId: insightIdRef.current,
       onInsightId: (id) => { insightIdRef.current = id; },
       onDelta: (chunk) => {
@@ -100,7 +117,7 @@ export function SurveyChat({ onInsight, apiKey, autoStart = false, primaryColor,
       setLoading(false);
       toast.error(err.message || "Failed to send message");
     });
-  }, [currentAnswer, loading, complete, messages, currentQuestion, apiKey, onInsight]);
+  }, [currentAnswer, loading, complete, messages, currentQuestion, apiKey, onInsight]); // userContext read via ref
 
   if (!started) {
     return (

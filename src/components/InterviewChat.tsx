@@ -29,6 +29,8 @@ export function InterviewChat({ onInsight, apiKey, autoStart = false, fullHeight
   const fullTextRef = useRef("");
   const autoStarted = useRef(false);
   const insightIdRef = useRef<string | null>(null);
+  const userContextRef = useRef(userContext);
+  userContextRef.current = userContext;
 
   useEffect(() => {
     if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight;
@@ -42,20 +44,27 @@ export function InterviewChat({ onInsight, apiKey, autoStart = false, fullHeight
     insightIdRef.current = null;
     setLoading(true);
 
-    // Show dots briefly, then stream the static first message character by character
-    setTimeout(() => {
-      let i = 0;
-      const interval = setInterval(() => {
-        i++;
-        const partial = FIRST_MESSAGE.slice(0, i);
-        setMessages([{ role: "assistant", content: partial }]);
-        if (i >= FIRST_MESSAGE.length) {
-          clearInterval(interval);
-          setLoading(false);
-        }
-      }, 18);
-    }, 600);
-  }, []);
+    let assistantSoFar = "";
+    streamChat({
+      messages: [],
+      apiKey,
+      userContext: userContextRef.current,
+      insightId: insightIdRef.current,
+      onInsightId: (id) => { insightIdRef.current = id; },
+      onDelta: (chunk) => {
+        assistantSoFar += chunk;
+        fullTextRef.current = assistantSoFar;
+        const cleaned = cleanMessage(assistantSoFar);
+        setMessages([{ role: "assistant", content: cleaned }]);
+      },
+      onDone: () => {
+        setLoading(false);
+      },
+    }).catch(() => {
+      setMessages([{ role: "assistant", content: FIRST_MESSAGE }]);
+      setLoading(false);
+    });
+  }, [apiKey]);
 
   useEffect(() => {
     if (autoStart && !autoStarted.current) {
@@ -84,7 +93,7 @@ export function InterviewChat({ onInsight, apiKey, autoStart = false, fullHeight
     streamChat({
       messages: allMessages,
       apiKey,
-      userContext,
+      userContext: userContextRef.current,
       insightId: insightIdRef.current,
       onInsightId: (id) => { insightIdRef.current = id; },
       onDelta: (chunk) => {
@@ -115,7 +124,7 @@ export function InterviewChat({ onInsight, apiKey, autoStart = false, fullHeight
       setLoading(false);
       toast.error(err.message || "Failed to send message");
     });
-  }, [input, loading, complete, messages, onInsight]);
+  }, [input, loading, complete, messages, apiKey, onInsight]);
 
   if (!started) {
     return (

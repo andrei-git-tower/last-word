@@ -125,7 +125,7 @@ export default function Widget() {
           <TypeformChat
             onInsight={handleInsight}
             apiKey={apiKey}
-            autoStart
+            autoStart={userContext !== null}
             primaryColor={primaryColor}
             buttonColor={buttonColor}
             fontFamily={fontFamily}
@@ -135,7 +135,7 @@ export default function Widget() {
           <SurveyChat
             onInsight={handleInsight}
             apiKey={apiKey}
-            autoStart
+            autoStart={userContext !== null}
             primaryColor={primaryColor}
             buttonColor={buttonColor}
             fontFamily={fontFamily}
@@ -145,7 +145,7 @@ export default function Widget() {
           <InterviewChat
             onInsight={handleInsight}
             apiKey={apiKey}
-            autoStart
+            autoStart={userContext !== null}
             fullHeight
             primaryColor={primaryColor}
             buttonColor={buttonColor}
