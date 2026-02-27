@@ -33,6 +33,20 @@ interface AccountConfig {
   brand_prompt: string;
 }
 
+interface InsightPayload {
+  surface_reason: string;
+  deep_reasons: string[];
+  sentiment: string;
+  salvageable: boolean;
+  key_quote: string;
+  category: string;
+  competitor: string | null;
+  feature_gaps: string[];
+  usage_duration: string | null;
+  retention_path: string;
+  retention_accepted: boolean;
+}
+
 // --- Prompt builder ---
 
 function buildRetentionSection(paths: RetentionPathConfig): string {
@@ -211,6 +225,114 @@ function parseInsight(text: string): Record<string, unknown> | null {
   }
 }
 
+function firstUserMessage(messages: Array<{ role: string; content: string }>): string {
+  const first = messages.find((m) => m.role === "user" && String(m.content ?? "").trim().toLowerCase() !== "start");
+  return String(first?.content ?? "").trim();
+}
+
+function lastUserMessage(messages: Array<{ role: string; content: string }>): string {
+  for (let i = messages.length - 1; i >= 0; i -= 1) {
+    const m = messages[i];
+    if (m.role === "user") {
+      const c = String(m.content ?? "").trim();
+      if (c.toLowerCase() !== "start" && c.length > 0) return c;
+    }
+  }
+  return "";
+}
+
+function buildFallbackInsight(messages: Array<{ role: string; content: string }>): InsightPayload {
+  const surface = firstUserMessage(messages) || "No clear reason provided";
+  const keyQuote = lastUserMessage(messages) || surface;
+  return {
+    surface_reason: surface,
+    deep_reasons: [surface],
+    sentiment: "neutral",
+    salvageable: false,
+    key_quote: keyQuote,
+    category: "other",
+    competitor: null,
+    feature_gaps: [],
+    usage_duration: null,
+    retention_path: "offboard_gracefully",
+    retention_accepted: false,
+  };
+}
+
+function normalizeInsightPayload(raw: Record<string, unknown> | null, messages: Array<{ role: string; content: string }>): InsightPayload {
+  const fallback = buildFallbackInsight(messages);
+  if (!raw) return fallback;
+  return {
+    surface_reason: String(raw.surface_reason ?? fallback.surface_reason),
+    deep_reasons: Array.isArray(raw.deep_reasons) ? (raw.deep_reasons as unknown[]).map((v) => String(v)) : fallback.deep_reasons,
+    sentiment: String(raw.sentiment ?? fallback.sentiment),
+    salvageable: Boolean(raw.salvageable),
+    key_quote: String(raw.key_quote ?? fallback.key_quote),
+    category: String(raw.category ?? fallback.category),
+    competitor: raw.competitor ? String(raw.competitor) : null,
+    feature_gaps: Array.isArray(raw.feature_gaps) ? (raw.feature_gaps as unknown[]).map((v) => String(v)) : [],
+    usage_duration: raw.usage_duration ? String(raw.usage_duration) : null,
+    retention_path: String(raw.retention_path ?? fallback.retention_path),
+    retention_accepted: Boolean(raw.retention_accepted),
+  };
+}
+
+function forceFinalTranscript(rawText: string, messages: Array<{ role: string; content: string }>): { text: string; insight: InsightPayload } {
+  const insight = normalizeInsightPayload(parseInsight(rawText), messages);
+  const visibleRaw = rawText
+    .replace(/\[INSIGHTS\][\s\S]*?\[\/INSIGHTS\]/g, "")
+    .replace(/\[INTERVIEW_COMPLETE\]/g, "")
+    .trim();
+
+  const visible = visibleRaw.includes("?")
+    ? "Thanks for sharing this with us — we appreciate the context and will use it to improve."
+    : (visibleRaw || "Thanks for sharing this with us — we appreciate the context and will use it to improve.");
+
+  const text =
+    `${visible}\n\n` +
+    `[INTERVIEW_COMPLETE]\n\n` +
+    `[INSIGHTS]\n${JSON.stringify(insight, null, 2)}\n[/INSIGHTS]`;
+
+  return { text, insight };
+}
+
+function textToAnthropicSSE(text: string): ReadableStream<Uint8Array> {
+  const encoder = new TextEncoder();
+  const payload =
+    `data: ${JSON.stringify({ type: "content_block_delta", delta: { type: "text_delta", text } })}\n\n` +
+    `data: [DONE]\n\n`;
+  return new ReadableStream<Uint8Array>({
+    start(controller) {
+      controller.enqueue(encoder.encode(payload));
+      controller.close();
+    },
+  });
+}
+
+async function saveInsight(
+  supabase: ReturnType<typeof createClient>,
+  accountId: string,
+  insight: InsightPayload,
+  messages: Array<{ role: string; content: string }>
+) {
+  const { error: insertError } = await supabase.from("insights").insert({
+    account_id: accountId,
+    surface_reason: insight.surface_reason,
+    deep_reasons: insight.deep_reasons,
+    sentiment: insight.sentiment,
+    salvageable: insight.salvageable,
+    key_quote: insight.key_quote,
+    category: insight.category || "other",
+    competitor: insight.competitor,
+    feature_gaps: insight.feature_gaps,
+    usage_duration: insight.usage_duration,
+    retention_path: insight.retention_path,
+    retention_accepted: insight.retention_accepted,
+    raw_transcript: messages,
+  });
+  if (insertError) console.error("Failed to save insight:", insertError);
+}
+
 // --- Main handler ---
 
 serve(async (req) => {
@@ -285,9 +407,60 @@ serve(async (req) => {
     }
 
     const systemPrompt = buildSystemPrompt(config, userTurns);
+    const hardStopReached = userTurns >= config.max_exchanges;
 
     const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
     if (!ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is not configured");
+
+    if (hardStopReached) {
+      const forcedPrompt = `${systemPrompt}
+
+## HARD STOP (SERVER ENFORCED)
+- Maximum customer replies reached.
+- Respond with a final wrap-up now.
+- Do not ask any question.
+- Include [INTERVIEW_COMPLETE] and [INSIGHTS] in this response.`;
+
+      const forcedResponse = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "x-api-key": ANTHROPIC_API_KEY,
+          "anthropic-version": "2023-06-01",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "claude-haiku-4-5-20251001",
+          max_tokens: 1024,
+          system: forcedPrompt,
+          messages,
+          stream: false,
+        }),
+      });
+
+      if (!forcedResponse.ok) {
+        const t = await forcedResponse.text();
+        console.error("AI gateway error (hard stop):", forcedResponse.status, t);
+        return new Response(JSON.stringify({ error: "AI gateway error" }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const forcedJson = await forcedResponse.json();
+      const generatedText = Array.isArray(forcedJson?.content)
+        ? forcedJson.content
+            .filter((c: Record<string, unknown>) => c?.type === "text")
+            .map((c: Record<string, unknown>) => String(c?.text ?? ""))
+            .join("")
+        : "";
+
+      const { text: finalText, insight } = forceFinalTranscript(generatedText, messages);
+      await saveInsight(supabase, accountId, insight, messages);
+
+      return new Response(textToAnthropicSSE(finalText), {
+        headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
+      });
+    }
 
     const aiResponse = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -350,25 +523,8 @@ serve(async (req) => {
         // Save insight if interview completed
         const fullText = extractTextFromSSE(accumulated);
         if (fullText.includes("[INTERVIEW_COMPLETE]")) {
-          const insight = parseInsight(fullText);
-          if (insight) {
-            const { error: insertError } = await supabase.from("insights").insert({
-              account_id: accountId,
-              surface_reason: String(insight.surface_reason ?? ""),
-              deep_reasons: (insight.deep_reasons as string[]) ?? [],
-              sentiment: String(insight.sentiment ?? "neutral"),
-              salvageable: Boolean(insight.salvageable),
-              key_quote: String(insight.key_quote ?? ""),
-              category: String(insight.category ?? "other"),
-              competitor: insight.competitor ? String(insight.competitor) : null,
-              feature_gaps: (insight.feature_gaps as string[]) ?? [],
-              usage_duration: insight.usage_duration ? String(insight.usage_duration) : null,
-              retention_path: String(insight.retention_path ?? ""),
-              retention_accepted: Boolean(insight.retention_accepted),
-              raw_transcript: messages,
-            });
-            if (insertError) console.error("Failed to save insight:", insertError);
-          }
+          const insight = normalizeInsightPayload(parseInsight(fullText), messages);
+          await saveInsight(supabase, accountId, insight, messages);
         }
       } catch (e) {
         console.error("Stream processing error:", e);
