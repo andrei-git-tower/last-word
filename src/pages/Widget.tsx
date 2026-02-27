@@ -6,8 +6,8 @@ export default function Widget() {
   const [searchParams] = useSearchParams();
   const apiKey = searchParams.get("key") ?? "";
 
-  function handleInsight(_insight: Insight) {
-    window.parent.postMessage({ type: "lastword:done" }, "*");
+  function handleInsight(insight: Insight) {
+    window.parent.postMessage({ type: "lastword:complete", insight }, "*");
   }
 
   if (!apiKey) {

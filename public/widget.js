@@ -80,10 +80,14 @@
     if (backdrop && e.target === backdrop) close();
   });
 
+  window.LastWord = { open: open, close: close };
+
   // Preload: inject hidden iframe immediately so it boots while the user
   // is still on the cancellation page — by the time they open the widget
   // the AI greeting is already loading or done.
-  createOverlay();
-
-  window.LastWord = { open: open, close: close };
+  if (document.body) {
+    createOverlay();
+  } else {
+    document.addEventListener("DOMContentLoaded", createOverlay);
+  }
 })();
