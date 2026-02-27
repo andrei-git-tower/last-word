@@ -748,6 +748,9 @@ serve(async (req) => {
     const systemPrompt = buildSystemPrompt(config, userTurns, userContext, ruleInjection);
     const hardStopReached = userTurns >= config.max_exchanges;
 
+    console.log("[AI CALL] system:", systemPrompt);
+    console.log("[AI CALL] messages:", JSON.stringify(messages, null, 2));
+
     const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
     if (!ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is not configured");
 
