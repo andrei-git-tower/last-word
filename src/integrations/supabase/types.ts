@@ -47,6 +47,10 @@ export type Database = {
           brand_prompt: string
           min_exchanges: number
           max_exchanges: number
+          brand_logo_url: string
+          brand_primary_color: string
+          brand_button_color: string
+          brand_font: string
           updated_at: string
         }
         Insert: {
@@ -60,6 +64,10 @@ export type Database = {
           brand_prompt?: string
           min_exchanges?: number
           max_exchanges?: number
+          brand_logo_url?: string
+          brand_primary_color?: string
+          brand_button_color?: string
+          brand_font?: string
           updated_at?: string
         }
         Update: {
@@ -73,6 +81,10 @@ export type Database = {
           brand_prompt?: string
           min_exchanges?: number
           max_exchanges?: number
+          brand_logo_url?: string
+          brand_primary_color?: string
+          brand_button_color?: string
+          brand_font?: string
           updated_at?: string
         }
         Relationships: []

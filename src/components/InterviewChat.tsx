@@ -11,9 +11,10 @@ interface InterviewChatProps {
   onInsight: (insight: Insight) => void;
   apiKey: string;
   autoStart?: boolean;
+  fontFamily?: string;
 }
 
-export function InterviewChat({ onInsight, apiKey, autoStart = false }: InterviewChatProps) {
+export function InterviewChat({ onInsight, apiKey, autoStart = false, fontFamily }: InterviewChatProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -142,6 +143,7 @@ export function InterviewChat({ onInsight, apiKey, autoStart = false }: Intervie
               className={`max-w-xs sm:max-w-sm rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
                 m.role === "user" ? "chat-bubble-user" : "chat-bubble-ai"
               }`}
+              style={fontFamily ? { fontFamily } : undefined}
             >
               {m.content}
             </div>

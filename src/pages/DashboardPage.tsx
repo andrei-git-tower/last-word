@@ -12,7 +12,7 @@ import type { Insight } from "@/lib/constants";
 
 const APP_URL = import.meta.env.VITE_APP_URL ?? window.location.origin;
 
-type Tab = "insights" | "interview" | "setup" | "settings" | "branding";
+type Tab = "insights" | "interview" | "setup" | "settings" | "branding" | "superinsights";
 
 const NAV_ITEMS = [
   {
@@ -64,6 +64,15 @@ const NAV_ITEMS = [
       </svg>
     ),
   },
+  {
+    id: "superinsights",
+    label: "SUPERINSIGHTS",
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+      </svg>
+    ),
+  },
 ] as const satisfies { id: Tab; label: string; icon: React.ReactNode }[];
 
 const PAGE_TITLES: Record<Tab, { title: string; description: string }> = {
@@ -72,6 +81,7 @@ const PAGE_TITLES: Record<Tab, { title: string; description: string }> = {
   setup: { title: "Setup", description: "Install the widget and configure your integration." },
   branding: { title: "Branding", description: "Scrape your website to tailor the interview experience to your brand." },
   settings: { title: "Settings", description: "Manage conversation limits, competitors, and account preferences." },
+  superinsights: { title: "Superinsights", description: "All interviews across all accounts — dev only." },
 };
 
 export default function DashboardPage() {
@@ -94,6 +104,16 @@ export default function DashboardPage() {
     },
   });
 
+  const { data: superInsightsRows, isLoading: superInsightsLoading } = useQuery({
+    queryKey: ["superinsights"],
+    enabled: tab === "superinsights",
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("get_all_insights");
+      if (error) throw error;
+      return data;
+    },
+  });
+
   const { data: account } = useQuery({
     queryKey: ["account"],
     queryFn: async () => {
@@ -102,6 +122,17 @@ export default function DashboardPage() {
         .select("api_key, email")
         .single();
       if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: config } = useQuery({
+    queryKey: ["config"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("configs")
+        .select("brand_font")
+        .maybeSingle();
       return data;
     },
   });
@@ -157,17 +188,22 @@ export default function DashboardPage() {
         <nav className="flex-1 px-3 py-4 space-y-0.5">
           {NAV_ITEMS.map((item) => {
             const active = tab === item.id;
+            const isSuper = item.id === "superinsights";
             return (
               <button
                 key={item.id}
                 onClick={() => setTab(item.id)}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all text-left ${
-                  active
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+                  isSuper
+                    ? active
+                      ? "bg-amber-400 text-amber-950"
+                      : "text-amber-500 hover:text-amber-600 hover:bg-amber-50"
+                    : active
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:text-foreground hover:bg-secondary"
                 }`}
               >
-                <span className={active ? "text-primary-foreground" : "text-muted-foreground"}>
+                <span className={isSuper ? (active ? "text-amber-950" : "text-amber-500") : active ? "text-primary-foreground" : "text-muted-foreground"}>
                   {item.icon}
                 </span>
                 {item.label}
@@ -250,6 +286,36 @@ export default function DashboardPage() {
             )
           )}
 
+          {/* Superinsights tab */}
+          {tab === "superinsights" && (() => {
+            const rows = superInsightsRows ?? [];
+            const allInsights: Insight[] = rows.map((row: typeof rows[number]) => ({
+              surface_reason: row.surface_reason,
+              deep_reasons: row.deep_reasons,
+              sentiment: row.sentiment as "positive" | "neutral" | "negative",
+              salvageable: row.salvageable,
+              key_quote: row.key_quote,
+              category: row.category,
+              competitor: row.competitor,
+              feature_gaps: row.feature_gaps,
+              usage_duration: row.usage_duration ?? "",
+              date: formatDistanceToNow(new Date(row.created_at), { addSuffix: true }),
+              retention_path: row.retention_path,
+              retention_accepted: row.retention_accepted,
+            }));
+            return superInsightsLoading ? (
+              <div className="flex items-center justify-center h-64">
+                <div className="text-sm text-muted-foreground">Loading...</div>
+              </div>
+            ) : allInsights.length === 0 ? (
+              <div className="flex items-center justify-center h-64">
+                <div className="text-sm text-muted-foreground">No interviews in the database yet.</div>
+              </div>
+            ) : (
+              <Dashboard insights={allInsights} useSampleData={false} />
+            );
+          })()}
+
           {/* Test Interview tab */}
           {tab === "interview" && (
             account?.api_key ? (
@@ -257,6 +323,7 @@ export default function DashboardPage() {
                 <InterviewChat
                   onInsight={handleTestInsight}
                   apiKey={account.api_key}
+                  fontFamily={config?.brand_font || undefined}
                 />
               </div>
             ) : (
