@@ -11,10 +11,13 @@ interface InterviewChatProps {
   onInsight: (insight: Insight) => void;
   apiKey: string;
   autoStart?: boolean;
+  fullHeight?: boolean;
+  primaryColor?: string;
+  buttonColor?: string;
   fontFamily?: string;
 }
 
-export function InterviewChat({ onInsight, apiKey, autoStart = false, fontFamily }: InterviewChatProps) {
+export function InterviewChat({ onInsight, apiKey, autoStart = false, fullHeight = false, primaryColor, buttonColor, fontFamily }: InterviewChatProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -135,15 +138,18 @@ export function InterviewChat({ onInsight, apiKey, autoStart = false, fontFamily
   }
 
   return (
-    <div className="bg-card rounded-xl border border-border overflow-hidden">
-      <div ref={chatRef} className="h-96 overflow-y-auto p-5 space-y-4">
+    <div className={`bg-card overflow-hidden flex flex-col ${fullHeight ? "flex-1 rounded-xl border-0" : "rounded-xl border border-border"}`}>
+      <div ref={chatRef} className={`overflow-y-auto p-5 space-y-4 ${fullHeight ? "flex-1" : "h-96"}`}>
         {messages.map((m, i) => (
           <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
             <div
               className={`max-w-xs sm:max-w-sm rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
                 m.role === "user" ? "chat-bubble-user" : "chat-bubble-ai"
               }`}
-              style={fontFamily ? { fontFamily } : undefined}
+              style={{
+                ...(fontFamily ? { fontFamily } : {}),
+                ...(m.role === "user" && primaryColor ? { backgroundColor: primaryColor, color: "#fff" } : {}),
+              }}
             >
               {m.content}
             </div>
@@ -184,6 +190,7 @@ export function InterviewChat({ onInsight, apiKey, autoStart = false, fontFamily
               onClick={send}
               disabled={loading || !input.trim()}
               className="px-4 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:opacity-90 disabled:opacity-40 transition-opacity"
+              style={buttonColor ? { backgroundColor: buttonColor, color: "#fff" } : undefined}
             >
               <Send className="w-4 h-4" />
             </button>
