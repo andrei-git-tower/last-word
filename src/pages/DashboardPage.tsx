@@ -8,12 +8,13 @@ import { InterviewChat } from "@/components/InterviewChat";
 import { SettingsPage } from "@/components/SettingsPage";
 import { BrandingPage } from "@/components/BrandingPage";
 import { RulesBuilder } from "@/components/RulesBuilder";
+import { IntegrationsPage } from "@/components/IntegrationsPage";
 import { toast } from "sonner";
 import type { Insight } from "@/lib/constants";
 
 const APP_URL = import.meta.env.VITE_APP_URL ?? window.location.origin;
 
-type Tab = "insights" | "interview" | "setup" | "settings" | "branding" | "rules" | "superinsights";
+type Tab = "insights" | "interview" | "setup" | "settings" | "branding" | "rules" | "integrations" | "superinsights";
 
 const NAV_ITEMS = [
   {
@@ -80,6 +81,19 @@ const NAV_ITEMS = [
     ),
   },
   {
+    id: "integrations",
+    label: "Integrations",
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M8 9h8" />
+        <path d="M8 15h8" />
+        <path d="M3 9h.01" />
+        <path d="M3 15h.01" />
+        <path d="M12 3v18" />
+      </svg>
+    ),
+  },
+  {
     id: "superinsights",
     label: "SUPERINSIGHTS",
     icon: (
@@ -97,6 +111,7 @@ const PAGE_TITLES: Record<Tab, { title: string; description: string }> = {
   branding: { title: "Branding", description: "Scrape your website to tailor the interview experience to your brand." },
   rules: { title: "Rules", description: "Define prioritized rules that inject custom text into the AI system prompt based on user context." },
   settings: { title: "Settings", description: "Manage conversation limits, competitors, and account preferences." },
+  integrations: { title: "Integrations", description: "Send realtime notifications to Slack or webhooks." },
   superinsights: { title: "Superinsights", description: "All interviews across all accounts — dev only." },
 };
 
@@ -357,6 +372,9 @@ export default function DashboardPage() {
 
           {/* Settings tab */}
           {tab === "settings" && <SettingsPage />}
+
+          {/* Integrations tab */}
+          {tab === "integrations" && <IntegrationsPage />}
 
           {/* Setup tab */}
           {tab === "setup" && (

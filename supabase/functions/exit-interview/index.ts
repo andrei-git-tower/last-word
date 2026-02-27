@@ -445,26 +445,16 @@ function buildSlackPayload(event: ReturnType<typeof buildNotificationEvent>) {
     : "None provided";
 
   return {
-    text: `New cancellation interview (${event.insight.category})`,
-    blocks: [
-      {
-        type: "header",
-        text: { type: "plain_text", text: "New cancellation interview", emoji: true },
-      },
-      {
-        type: "section",
-        fields: [
-          { type: "mrkdwn", text: `*Surface reason*\n${event.insight.surface_reason || "N/A"}` },
-          { type: "mrkdwn", text: `*Category*\n${event.insight.category || "other"}` },
-          { type: "mrkdwn", text: `*Salvageable*\n${salvageable}` },
-          { type: "mrkdwn", text: `*Retention path*\n${event.insight.retention_path || "N/A"}` },
-        ],
-      },
-      {
-        type: "section",
-        text: { type: "mrkdwn", text: `*Deep reasons*\n${deepReasons}` },
-      },
-    ],
+    event: event.event,
+    account_id: event.account_id,
+    insight_id: event.insight_id,
+    occurred_at: event.occurred_at,
+    surface_reason: event.insight.surface_reason || "N/A",
+    deep_reasons: deepReasons,
+    category: event.insight.category || "other",
+    salvageable,
+    retention_path: event.insight.retention_path || "N/A",
+    key_quote: event.insight.key_quote || "",
   };
 }
 

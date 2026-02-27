@@ -182,6 +182,105 @@ export type Database = {
         }
         Relationships: []
       }
+      notification_deliveries: {
+        Row: {
+          id: string
+          account_id: string
+          endpoint_id: string | null
+          insight_id: string | null
+          event_type: string
+          status: string
+          payload: Json
+          http_status: number | null
+          duration_ms: number | null
+          error_message: string | null
+          response_body: string | null
+          attempted_at: string
+        }
+        Insert: {
+          id?: string
+          account_id: string
+          endpoint_id?: string | null
+          insight_id?: string | null
+          event_type?: string
+          status: string
+          payload?: Json
+          http_status?: number | null
+          duration_ms?: number | null
+          error_message?: string | null
+          response_body?: string | null
+          attempted_at?: string
+        }
+        Update: {
+          id?: string
+          account_id?: string
+          endpoint_id?: string | null
+          insight_id?: string | null
+          event_type?: string
+          status?: string
+          payload?: Json
+          http_status?: number | null
+          duration_ms?: number | null
+          error_message?: string | null
+          response_body?: string | null
+          attempted_at?: string
+        }
+        Relationships: []
+      }
+      notification_endpoints: {
+        Row: {
+          id: string
+          account_id: string
+          name: string
+          provider: string
+          target_url: string
+          signing_secret: string
+          auth_header_name: string | null
+          auth_header_value: string | null
+          enabled: boolean
+          event_type: string
+          delivery_mode: string
+          digest_hour_utc: number
+          digest_weekday_utc: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          account_id: string
+          name?: string
+          provider: string
+          target_url: string
+          signing_secret?: string
+          auth_header_name?: string | null
+          auth_header_value?: string | null
+          enabled?: boolean
+          event_type?: string
+          delivery_mode?: string
+          digest_hour_utc?: number
+          digest_weekday_utc?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          account_id?: string
+          name?: string
+          provider?: string
+          target_url?: string
+          signing_secret?: string
+          auth_header_name?: string | null
+          auth_header_value?: string | null
+          enabled?: boolean
+          event_type?: string
+          delivery_mode?: string
+          digest_hour_utc?: number
+          digest_weekday_utc?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
