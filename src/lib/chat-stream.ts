@@ -74,11 +74,6 @@ export async function streamChat({
 
       try {
         const parsed = JSON.parse(jsonStr);
-        if (parsed.type === "debug") {
-          console.log("[AI CALL] system:\n", parsed.system);
-          console.log("[AI CALL] messages:\n", parsed.messages);
-          continue;
-        }
         // Anthropic format
         if (parsed.type === "content_block_delta" && parsed.delta?.type === "text_delta") {
           onDelta(parsed.delta.text);

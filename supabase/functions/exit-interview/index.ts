@@ -398,14 +398,9 @@ function forceFinalTranscript(rawText: string, messages: Array<{ role: string; c
   return { text, insight };
 }
 
-function debugSSEFrame(system: string, messages: unknown[]): string {
-  return `data: ${JSON.stringify({ type: "debug", system, messages })}\n\n`;
-}
-
-function textToAnthropicSSE(text: string, debugPrefix?: string): ReadableStream<Uint8Array> {
+function textToAnthropicSSE(text: string): ReadableStream<Uint8Array> {
   const encoder = new TextEncoder();
   const payload =
-    (debugPrefix ?? "") +
     `data: ${JSON.stringify({ type: "content_block_delta", delta: { type: "text_delta", text } })}\n\n` +
     `data: [DONE]\n\n`;
   return new ReadableStream<Uint8Array>({
@@ -753,9 +748,6 @@ serve(async (req) => {
     const systemPrompt = buildSystemPrompt(config, userTurns, userContext, ruleInjection);
     const hardStopReached = userTurns >= config.max_exchanges;
 
-    console.log("[AI CALL] system:", systemPrompt);
-    console.log("[AI CALL] messages:", JSON.stringify(messages, null, 2));
-
     const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
     if (!ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is not configured");
 
@@ -799,7 +791,7 @@ serve(async (req) => {
           const geminiText = await geminiNonStreaming(forcedPrompt, messages, 1024, GEMINI_API_KEY);
           const { text: finalText, insight } = forceFinalTranscript(geminiText, messages);
           await saveInsight(supabase, accountId, insight, messages, userContext, insightId);
-          return new Response(textToAnthropicSSE(finalText, debugSSEFrame(forcedPrompt, messages)), {
+          return new Response(textToAnthropicSSE(finalText), {
             headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
           });
         } catch (geminiErr) {
@@ -825,7 +817,7 @@ serve(async (req) => {
         console.error("Notification dispatch error:", e);
       });
 
-      return new Response(textToAnthropicSSE(finalText, debugSSEFrame(forcedPrompt, messages)), {
+      return new Response(textToAnthropicSSE(finalText), {
         headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
       });
     }
@@ -894,9 +886,6 @@ serve(async (req) => {
     });
 
     (async () => {
-      const encoder = new TextEncoder();
-      streamController!.enqueue(encoder.encode(debugSSEFrame(systemPrompt, messages)));
-
       const reader = aiResponse.body!.getReader();
       const decoder = new TextDecoder();
       let accumulated = "";
