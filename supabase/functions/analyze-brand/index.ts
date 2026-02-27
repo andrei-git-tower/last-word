@@ -121,13 +121,11 @@ serve(async (req) => {
       });
     }
 
-    // UPDATE only — avoids insert failing on NOT NULL product_name constraint
+    // Only update brand_prompt — do not touch product_name or other fields
     const { error: updateError } = await supabaseAdmin
       .from("configs")
-      .upsert(
-        { account_id: accountId, product_name: "", brand_prompt, updated_at: new Date().toISOString() },
-        { onConflict: "account_id" }
-      );
+      .update({ brand_prompt, updated_at: new Date().toISOString() })
+      .eq("account_id", accountId);
 
     console.log("[analyze-brand] configs update error:", updateError?.message ?? "none");
 

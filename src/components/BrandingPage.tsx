@@ -372,9 +372,9 @@ export function BrandingPage({ apiKey }: { apiKey: string }) {
         setColorStatus("not_found");
       }
 
-      // Persist to DB — upsert so it works even if no configs row exists yet
+      // Persist to DB — awaited so product_name is saved before analyze-brand runs
       if (user?.id) {
-        supabase
+        const { error: saveError } = await supabase
           .from("configs")
           .upsert({
             account_id: user.id,
@@ -384,11 +384,9 @@ export function BrandingPage({ apiKey }: { apiKey: string }) {
             brand_button_color: colors.button ?? "",
             brand_font: colors.font ?? "",
             updated_at: new Date().toISOString(),
-          }, { onConflict: "account_id" })
-          .then(({ error }) => {
-            if (error) console.error("Failed to save branding fields:", error);
-            else queryClient.invalidateQueries({ queryKey: ["config"] });
-          });
+          }, { onConflict: "account_id" });
+        if (saveError) console.error("Failed to save branding fields:", saveError);
+        else queryClient.invalidateQueries({ queryKey: ["config"] });
       }
     } else {
       setLogoStatus("not_found");
