@@ -37,7 +37,6 @@ export function InterviewChat({ onInsight, apiKey, autoStart = false, fullHeight
   }, [messages, loading]);
 
   const startInterview = useCallback(() => {
-    console.log("[LastWord] startInterview called, userContext:", userContextRef.current);
     setStarted(true);
     setMessages([]);
     setComplete(false);
@@ -68,7 +67,6 @@ export function InterviewChat({ onInsight, apiKey, autoStart = false, fullHeight
   }, [apiKey]);
 
   useEffect(() => {
-    console.log("[LastWord] InterviewChat autoStart effect:", { autoStart, alreadyStarted: autoStarted.current });
     if (autoStart && !autoStarted.current) {
       autoStarted.current = true;
       startInterview();

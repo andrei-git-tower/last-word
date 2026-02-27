@@ -27,9 +27,6 @@ export async function streamChat({
   onDone: () => void;
   onInsightId?: (id: string) => void;
 }) {
-  const payload = { messages, userContext: userContext ?? null, insightId: insightId ?? null };
-  console.log("[LastWord] streamChat REQUEST →", CHAT_URL, JSON.parse(JSON.stringify(payload)));
-
   const resp = await fetch(CHAT_URL, {
     method: "POST",
     headers: {
@@ -37,10 +34,8 @@ export async function streamChat({
       Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
       "x-api-key": apiKey,
     },
-    body: JSON.stringify(payload),
+    body: JSON.stringify({ messages, userContext: userContext ?? null, insightId: insightId ?? null }),
   });
-
-  console.log("[LastWord] streamChat RESPONSE ←", resp.status, resp.statusText);
 
   const receivedInsightId = resp.headers.get("x-insight-id");
   if (receivedInsightId && onInsightId) onInsightId(receivedInsightId);
