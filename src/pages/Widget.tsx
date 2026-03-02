@@ -19,11 +19,10 @@ interface WidgetConfig {
 }
 
 export default function Widget() {
-  const legacyApiKey = new URLSearchParams(window.location.search).get("key") ?? "";
-  const [apiKey, setApiKey] = useState(legacyApiKey);
+  const [apiKey, setApiKey] = useState("");
   const [config, setConfig] = useState<WidgetConfig | null>(null);
   const [userContext, setUserContext] = useState<UserContext | null>(null);
-  const [widgetInitialized, setWidgetInitialized] = useState(Boolean(legacyApiKey));
+  const [widgetInitialized, setWidgetInitialized] = useState(false);
   const [trustedParentOrigin, setTrustedParentOrigin] = useState<string | null>(null);
   const trustedParentOriginRef = useRef<string | null>(null);
   const trustedParentWindowRef = useRef<Window | null>(null);

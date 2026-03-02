@@ -287,12 +287,16 @@ export function IntegrationsPage() {
             <>
               <div>
                 <label className="text-xs font-medium text-muted-foreground mb-1 block">Header name</label>
-                <input
+                <select
                   value={apiKeyHeaderName}
                   onChange={(e) => setApiKeyHeaderName(e.target.value)}
                   className={INPUT_CLS}
-                  placeholder="X-API-Key"
-                />
+                >
+                  <option value="X-API-Key">X-API-Key</option>
+                  <option value="X-Token">X-Token</option>
+                  <option value="X-Auth-Token">X-Auth-Token</option>
+                  <option value="X-Secret">X-Secret</option>
+                </select>
               </div>
               <div>
                 <label className="text-xs font-medium text-muted-foreground mb-1 block">Header value</label>

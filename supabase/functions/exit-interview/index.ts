@@ -1047,7 +1047,9 @@ async function deliverRealtimeNotifications(
     }
 
     if (endpoint.signing_secret) {
-      const signature = await hmacSha256Hex(endpoint.signing_secret, body);
+      const tsSeconds = Math.floor(Date.now() / 1000).toString();
+      const signature = await hmacSha256Hex(endpoint.signing_secret, `${tsSeconds}.${body}`);
+      headers["x-lastword-timestamp"] = tsSeconds;
       headers["x-lastword-signature"] = `sha256=${signature}`;
     }
 
@@ -1061,6 +1063,7 @@ async function deliverRealtimeNotifications(
         headers,
         body,
         signal: controller.signal,
+        redirect: "error",
       });
       if (timeout) clearTimeout(timeout);
 
