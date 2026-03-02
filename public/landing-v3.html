@@ -1,0 +1,1225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Last Word</title>
+  <meta name="description" content="AI-powered exit interviews. Surface the real reason customers cancel." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #080808;
+      --bg-lift:  #0c0c0c;
+      --bg-raise: #111111;
+      --border:   rgba(255,255,255,0.07);
+      --border-hi: rgba(255,255,255,0.13);
+
+      /* Single pastel accent — a pale sage */
+      --accent:      #b8e0c8;
+      --accent-dim:  rgba(184,224,200,0.1);
+      --accent-mid:  rgba(184,224,200,0.22);
+      --accent-txt:  #080808;
+
+      --text:    #f0f0ef;
+      --text-60: rgba(240,240,239,0.6);
+      --text-35: rgba(240,240,239,0.35);
+      --text-18: rgba(240,240,239,0.18);
+
+      --serif: 'Instrument Serif', Georgia, serif;
+      --sans:  'DM Sans', sans-serif;
+      --mono:  'DM Mono', 'Courier New', monospace;
+
+      --r: 10px;
+      --r-sm: 6px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 15px;
+      font-weight: 400;
+      line-height: 1.65;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    /* very fine grain texture */
+    body::after {
+      content: '';
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+      opacity: 0.018;
+    }
+
+    a { color: inherit; text-decoration: none; }
+    .z { position: relative; z-index: 1; }
+
+    /* ── LAYOUT ── */
+    .wrap    { max-width: 1080px; margin: 0 auto; padding: 0 40px; }
+    .wrap-sm { max-width: 680px;  margin: 0 auto; padding: 0 40px; }
+    .wrap-xs { max-width: 520px;  margin: 0 auto; padding: 0 40px; }
+
+    /* ── NAV ── */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      border-bottom: 1px solid var(--border);
+      background: rgba(8,8,8,0.88);
+      backdrop-filter: blur(24px) saturate(1.2);
+    }
+    .nav-inner {
+      display: flex; align-items: center;
+      justify-content: space-between;
+      height: 54px;
+    }
+    .logo {
+      font-family: var(--serif);
+      font-size: 17px;
+      letter-spacing: 0.01em;
+      color: var(--text);
+    }
+    .nav-links {
+      display: flex; align-items: center; gap: 32px;
+      font-size: 13px; color: var(--text-35);
+      letter-spacing: 0.01em;
+    }
+    .nav-links a { transition: color 0.15s; }
+    .nav-links a:hover { color: var(--text-60); }
+    .nav-cta {
+      font-size: 12px; font-weight: 500;
+      padding: 8px 20px;
+      background: var(--accent);
+      color: var(--accent-txt);
+      border-radius: var(--r-sm);
+      letter-spacing: 0.01em;
+      transition: opacity 0.15s;
+    }
+    .nav-cta:hover { opacity: 0.82; }
+
+    /* ── HERO ── */
+    .hero {
+      padding: 120px 0 96px;
+      border-bottom: 1px solid var(--border);
+      position: relative;
+      overflow: hidden;
+    }
+    /* very faint radial vignette for depth */
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 50%; transform: translateX(-50%);
+      width: 700px; height: 400px;
+      background: radial-gradient(ellipse, rgba(184,224,200,0.04) 0%, transparent 65%);
+      pointer-events: none;
+    }
+    .hero-kicker {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+      color: var(--text-35);
+      margin-bottom: 36px;
+    }
+    .hero-kicker span {
+      display: inline-block;
+      width: 20px; height: 1px;
+      background: var(--text-18);
+    }
+    h1 {
+      font-family: var(--serif);
+      font-size: clamp(48px, 7vw, 86px);
+      font-weight: 400;
+      line-height: 1.05;
+      letter-spacing: -0.02em;
+      margin-bottom: 32px;
+      color: var(--text);
+      max-width: 680px;
+    }
+    h1 em {
+      font-style: italic;
+      color: var(--accent);
+    }
+    .hero-body {
+      font-size: 16px;
+      color: var(--text-60);
+      line-height: 1.7;
+      max-width: 440px;
+      margin-bottom: 48px;
+    }
+    .hero-actions {
+      display: flex; align-items: center; gap: 20px;
+    }
+    .btn-accent {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-size: 13px; font-weight: 500;
+      padding: 12px 26px;
+      background: var(--accent);
+      color: var(--accent-txt);
+      border-radius: var(--r-sm);
+      letter-spacing: 0.01em;
+      transition: opacity 0.15s, transform 0.12s;
+    }
+    .btn-accent:hover { opacity: 0.84; transform: translateY(-1px); }
+    .btn-text {
+      font-size: 13px; color: var(--text-35);
+      letter-spacing: 0.01em;
+      border-bottom: 1px solid transparent;
+      padding-bottom: 1px;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .btn-text:hover { color: var(--text-60); border-color: var(--border); }
+
+    .hero-rule {
+      width: 40px; height: 1px;
+      background: var(--border-hi);
+      margin: 64px 0 32px;
+    }
+    .hero-stats {
+      display: flex; gap: 48px; flex-wrap: wrap;
+    }
+    .hero-stat-val {
+      font-family: var(--serif);
+      font-size: 34px; font-weight: 400;
+      letter-spacing: -0.02em;
+      color: var(--text);
+      margin-bottom: 3px;
+    }
+    .hero-stat-label {
+      font-size: 11px; color: var(--text-35);
+      letter-spacing: 0.08em; text-transform: uppercase;
+    }
+
+    /* ── SCREENSHOT ── */
+    .screen-wrap {
+      padding: 64px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .screen-frame {
+      background: var(--bg-lift);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 64px 120px rgba(0,0,0,0.7);
+    }
+    .screen-bar {
+      background: var(--bg-raise);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 20px;
+      display: flex; align-items: center; gap: 7px;
+    }
+    .t-dot { width: 10px; height: 10px; border-radius: 50%; }
+    .screen-bar .url {
+      flex: 1; text-align: center;
+      font-family: var(--mono); font-size: 11px;
+      color: var(--text-18); letter-spacing: 0.02em;
+    }
+    .screen-ph {
+      width: 100%; aspect-ratio: 16/9;
+      display: flex; align-items: center; justify-content: center;
+      background: var(--bg-lift);
+      position: relative; overflow: hidden;
+    }
+    .screen-ph::before {
+      content: '';
+      position: absolute; inset: 0;
+      background:
+        repeating-linear-gradient(0deg, transparent, transparent 55px, rgba(255,255,255,0.012) 55px, rgba(255,255,255,0.012) 56px),
+        repeating-linear-gradient(90deg, transparent, transparent 55px, rgba(255,255,255,0.012) 55px, rgba(255,255,255,0.012) 56px);
+    }
+    .ph-label { text-align: center; z-index: 1; }
+    .ph-label p { font-family: var(--mono); font-size: 11px; color: var(--text-18); letter-spacing: 0.05em; }
+
+    /* ── SECTIONS ── */
+    .section { padding: 96px 0; border-bottom: 1px solid var(--border); }
+    .section:last-of-type { border-bottom: none; }
+
+    .label {
+      font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+      color: var(--text-35); margin-bottom: 28px;
+    }
+    h2 {
+      font-family: var(--serif);
+      font-size: clamp(30px, 4vw, 46px); font-weight: 400;
+      letter-spacing: -0.02em; line-height: 1.12;
+      margin-bottom: 20px;
+    }
+    h2 em { font-style: italic; color: var(--accent); }
+    .sec-body {
+      font-size: 15px; color: var(--text-60); line-height: 1.7;
+      max-width: 440px;
+    }
+
+    /* ── PROBLEM LAYOUT ── */
+    .problem-layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      overflow: hidden;
+      margin-top: 64px;
+    }
+    .p-col {}
+    .p-col-head {
+      padding: 22px 32px;
+      border-bottom: 1px solid var(--border);
+      font-size: 11px; letter-spacing: 0.1em;
+      text-transform: uppercase;
+      background: var(--bg-raise);
+    }
+    .p-col-head.dim { color: var(--text-35); }
+    .p-col-head.lit { color: var(--accent); }
+    .p-item {
+      padding: 28px 32px;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg-lift);
+    }
+    .p-item:last-child { border-bottom: none; }
+    .p-item strong {
+      display: block; font-size: 14px; font-weight: 500;
+      color: var(--text); margin-bottom: 6px;
+    }
+    .p-item p { font-size: 13px; color: var(--text-35); line-height: 1.6; }
+
+    /* ── HOW IT WORKS ── */
+    .how-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      overflow: hidden;
+      margin-top: 64px;
+    }
+    .how-card {
+      background: var(--bg-lift);
+      padding: 40px 36px;
+    }
+    .how-num {
+      font-family: var(--mono);
+      font-size: 10px; letter-spacing: 0.1em;
+      color: var(--text-18);
+      margin-bottom: 24px;
+    }
+    .how-card h3 {
+      font-family: var(--serif);
+      font-size: 22px; font-weight: 400;
+      letter-spacing: -0.01em;
+      margin-bottom: 12px;
+    }
+    .how-card p { font-size: 13px; color: var(--text-60); line-height: 1.7; }
+
+    /* ── CONVERSATION ── */
+    .convo-wrap {
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      overflow: hidden;
+      margin-top: 64px;
+    }
+    .convo-header {
+      padding: 20px 32px;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg-raise);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .convo-title { font-size: 12px; color: var(--text-35); letter-spacing: 0.04em; }
+    .convo-status {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 11px; color: var(--accent); letter-spacing: 0.06em;
+    }
+    .status-dot {
+      width: 5px; height: 5px; border-radius: 50%;
+      background: var(--accent);
+      animation: pulse 2.5s ease-in-out infinite;
+    }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.35} }
+
+    .convo-body {
+      display: grid;
+      grid-template-columns: 1fr 1px 1fr;
+    }
+    .convo-chat {
+      padding: 32px;
+      background: var(--bg-lift);
+    }
+    .convo-divider { background: var(--border); }
+    .convo-insight {
+      padding: 32px;
+      background: var(--bg-lift);
+    }
+
+    .msg { margin-bottom: 20px; display: flex; flex-direction: column; gap: 4px; }
+    .msg-who {
+      font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--text-18);
+    }
+    .msg-who.ai { color: rgba(184,224,200,0.4); }
+    .msg-bubble {
+      font-size: 13px; line-height: 1.6; color: var(--text-60);
+      max-width: 88%;
+    }
+    .msg-bubble.ai-b { color: var(--text); }
+
+    .insight-label {
+      font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--text-18); margin-bottom: 24px;
+    }
+    .insight-row {
+      display: flex; flex-direction: column; gap: 3px;
+      margin-bottom: 20px;
+    }
+    .ir-key {
+      font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--text-18);
+    }
+    .ir-val {
+      font-size: 14px; font-weight: 500; color: var(--text);
+    }
+    .ir-val.accent { color: var(--accent); }
+    .ir-val.dim { color: var(--text-60); }
+
+    /* ── FEATURES ── */
+    .feat-list {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      overflow: hidden;
+      margin-top: 64px;
+    }
+    .f-card {
+      background: var(--bg-lift);
+      padding: 36px 32px;
+      transition: background 0.2s;
+    }
+    .f-card:hover { background: var(--bg-raise); }
+    .f-idx {
+      font-family: var(--mono);
+      font-size: 10px; color: var(--text-18);
+      letter-spacing: 0.06em; margin-bottom: 24px;
+    }
+    .f-card h3 {
+      font-size: 15px; font-weight: 500;
+      letter-spacing: -0.01em; margin-bottom: 10px;
+    }
+    .f-card p { font-size: 13px; color: var(--text-35); line-height: 1.65; }
+
+    /* ── RETENTION ── */
+    .paths-list {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      overflow: hidden;
+      margin-top: 64px;
+    }
+    .path-card {
+      background: var(--bg-lift);
+      padding: 32px 24px;
+      transition: background 0.2s;
+    }
+    .path-card:hover { background: var(--bg-raise); }
+    .path-n {
+      font-family: var(--mono); font-size: 10px;
+      color: var(--text-18); letter-spacing: 0.06em;
+      margin-bottom: 20px;
+    }
+    .path-card h4 {
+      font-size: 14px; font-weight: 500;
+      letter-spacing: -0.01em; margin-bottom: 8px;
+    }
+    .path-card p { font-size: 12px; color: var(--text-35); line-height: 1.55; }
+    .path-accent-bar {
+      width: 20px; height: 1px;
+      background: var(--accent);
+      margin-bottom: 16px;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    .path-card:hover .path-accent-bar { opacity: 1; }
+
+    /* ── ANALYTICS ── */
+    .analytics-split {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 64px;
+      align-items: start;
+      margin-top: 64px;
+    }
+    .m-block { margin-bottom: 10px; }
+    .m-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--border); border-radius: var(--r); overflow: hidden; margin-bottom: 10px; }
+    .m-cell {
+      background: var(--bg-lift);
+      padding: 24px;
+    }
+    .m-lbl { font-size: 10px; color: var(--text-18); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 8px; }
+    .m-num {
+      font-family: var(--serif);
+      font-size: 38px; font-weight: 400; line-height: 1;
+      letter-spacing: -0.02em; color: var(--text);
+    }
+    .m-num.accent { color: var(--accent); }
+    .m-delta { font-size: 11px; color: var(--text-35); margin-top: 5px; }
+    .m-delta.up { color: var(--accent); }
+
+    .chart-block {
+      background: var(--bg-lift);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 28px;
+    }
+    .chart-title { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-18); margin-bottom: 24px; }
+    .b-row { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+    .b-row:last-child { margin-bottom: 0; }
+    .b-lbl { font-size: 11px; color: var(--text-35); width: 100px; flex-shrink: 0; }
+    .b-track { flex: 1; height: 3px; background: rgba(255,255,255,0.05); border-radius: 2px; overflow: hidden; }
+    .b-fill { height: 100%; border-radius: 2px; background: var(--text-18); transition: background 0.2s; }
+    .b-fill.hi { background: var(--accent); }
+    .b-pct { font-family: var(--mono); font-size: 11px; color: var(--text-18); width: 30px; text-align: right; }
+
+    .screen-sm {
+      background: var(--bg-lift);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      overflow: hidden;
+      margin-top: 10px;
+    }
+    .screen-sm-bar {
+      background: var(--bg-raise);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 16px;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .screen-sm-ph {
+      aspect-ratio: 4/3;
+      display: flex; align-items: center; justify-content: center;
+      background: var(--bg-lift);
+      position: relative;
+    }
+    .screen-sm-ph::before {
+      content: '';
+      position: absolute; inset: 0;
+      background:
+        repeating-linear-gradient(0deg, transparent, transparent 47px, rgba(255,255,255,0.01) 47px, rgba(255,255,255,0.01) 48px),
+        repeating-linear-gradient(90deg, transparent, transparent 47px, rgba(255,255,255,0.01) 47px, rgba(255,255,255,0.01) 48px);
+    }
+    .sm-ph-lbl { text-align: center; z-index: 1; font-family: var(--mono); font-size: 10px; color: var(--text-18); letter-spacing: 0.04em; }
+
+    /* ── TESTIMONIALS ── */
+    .testi-list {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      overflow: hidden;
+      margin-top: 64px;
+    }
+    .t-card {
+      background: var(--bg-lift);
+      padding: 40px 32px;
+    }
+    .t-card p {
+      font-family: var(--serif);
+      font-size: 17px; font-weight: 400;
+      line-height: 1.6; letter-spacing: -0.01em;
+      color: var(--text-60);
+      margin-bottom: 32px;
+    }
+    .t-card p strong { color: var(--text); font-weight: 400; }
+    .t-author {
+      display: flex; align-items: center; gap: 14px;
+    }
+    .t-dot-av {
+      width: 32px; height: 32px; border-radius: 50%;
+      background: var(--bg-raise); border: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px;
+    }
+    .t-name { font-size: 13px; font-weight: 500; }
+    .t-role { font-size: 11px; color: var(--text-35); }
+
+    /* ── PRICING ── */
+    .price-list {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      overflow: hidden;
+      margin-top: 64px;
+    }
+    .pr-card {
+      background: var(--bg-lift);
+      padding: 44px 36px;
+    }
+    .pr-card.feat { background: var(--bg-raise); }
+    .pr-tier {
+      font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--text-35); margin-bottom: 24px;
+    }
+    .pr-amount {
+      font-family: var(--serif);
+      font-size: 60px; font-weight: 400;
+      letter-spacing: -0.04em; line-height: 1;
+      margin-bottom: 4px;
+    }
+    .pr-amount sup { font-size: 24px; vertical-align: super; opacity: 0.4; }
+    .pr-period { font-size: 12px; color: var(--text-35); margin-bottom: 36px; }
+    .pr-rule { width: 100%; height: 1px; background: var(--border); margin-bottom: 28px; }
+    .pr-feats {
+      list-style: none;
+      display: flex; flex-direction: column; gap: 12px;
+      margin-bottom: 36px;
+    }
+    .pr-feats li {
+      font-size: 13px; color: var(--text-60);
+      display: flex; align-items: flex-start; gap: 10px; line-height: 1.4;
+    }
+    .pr-feats li .ck { color: var(--accent); font-size: 12px; margin-top: 1px; flex-shrink: 0; }
+    .pr-btn {
+      display: block; text-align: center;
+      font-size: 13px; font-weight: 500;
+      padding: 12px 20px;
+      border-radius: var(--r-sm);
+      border: 1px solid var(--border);
+      color: var(--text-35);
+      letter-spacing: 0.01em;
+      transition: all 0.15s;
+    }
+    .pr-card.feat .pr-btn {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: var(--accent-txt);
+    }
+    .pr-btn:hover { opacity: 0.75; }
+
+    /* ── CTA ── */
+    .cta-section {
+      padding: 120px 0;
+      text-align: center;
+    }
+    .cta-section h2 {
+      font-size: clamp(36px, 5vw, 58px);
+      margin-bottom: 18px;
+    }
+    .cta-section p {
+      font-size: 16px; color: var(--text-60);
+      max-width: 380px; margin: 0 auto 44px;
+      line-height: 1.7;
+    }
+    .cta-form {
+      display: flex; gap: 10px;
+      max-width: 400px; margin: 0 auto;
+    }
+    .cta-field {
+      flex: 1;
+      background: var(--bg-lift);
+      border: 1px solid var(--border);
+      border-radius: var(--r-sm);
+      padding: 12px 16px;
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 13px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .cta-field:focus { border-color: var(--border-hi); }
+    .cta-field::placeholder { color: var(--text-18); }
+    .cta-note {
+      font-size: 11px; color: var(--text-18);
+      letter-spacing: 0.05em; margin-top: 16px;
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 36px 0 28px;
+    }
+    .foot { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 20px; }
+    .foot-copy { font-size: 11px; color: var(--text-18); letter-spacing: 0.04em; }
+    .foot-links { display: flex; gap: 24px; font-size: 11px; color: var(--text-35); letter-spacing: 0.04em; }
+    .foot-links a:hover { color: var(--text-60); }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 900px) {
+      .problem-layout, .how-grid, .analytics-split, .testi-list, .price-list { grid-template-columns: 1fr; }
+      .paths-list { grid-template-columns: repeat(2, 1fr); }
+      .feat-list { grid-template-columns: 1fr 1fr; }
+      .convo-body { grid-template-columns: 1fr; }
+      .convo-divider { display: none; }
+      .nav-links { display: none; }
+      .m-row { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 580px) {
+      h1 { font-size: 44px; }
+      .hero-stats { flex-direction: column; gap: 28px; }
+      .feat-list { grid-template-columns: 1fr; }
+      .cta-form { flex-direction: column; }
+      .paths-list { grid-template-columns: 1fr; }
+      .wrap, .wrap-sm, .wrap-xs { padding: 0 24px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav>
+    <div class="wrap z">
+      <div class="nav-inner">
+        <span class="logo">Last Word</span>
+        <div class="nav-links">
+          <a href="#problem">Problem</a>
+          <a href="#how">How it works</a>
+          <a href="#features">Features</a>
+          <a href="#pricing">Pricing</a>
+        </div>
+        <a href="#" class="nav-cta">Get access</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="wrap z">
+      <div class="hero-kicker">
+        <span></span>
+        AI exit interview intelligence
+        <span></span>
+      </div>
+      <h1>Stop guessing why customers <em>really</em> leave.</h1>
+      <p class="hero-body">
+        Last Word runs a short AI conversation when a customer cancels. It surfaces the real reason — not the first dropdown option — then offers a precise retention path that matches their actual problem.
+      </p>
+      <div class="hero-actions">
+        <a href="#" class="btn-accent">
+          Get early access
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </a>
+        <a href="#how" class="btn-text">See how it works →</a>
+      </div>
+
+      <div class="hero-rule"></div>
+
+      <div class="hero-stats">
+        <div>
+          <div class="hero-stat-val">15 min</div>
+          <div class="hero-stat-label">to first insight</div>
+        </div>
+        <div>
+          <div class="hero-stat-val">1</div>
+          <div class="hero-stat-label">script tag to deploy</div>
+        </div>
+        <div>
+          <div class="hero-stat-val">5</div>
+          <div class="hero-stat-label">retention paths</div>
+        </div>
+        <div>
+          <div class="hero-stat-val">0</div>
+          <div class="hero-stat-label">discounts required</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- HERO SCREENSHOT -->
+  <div class="screen-wrap">
+    <div class="wrap z">
+      <div class="screen-frame">
+        <div class="screen-bar">
+          <div class="t-dot" style="background:#2e2e2e"></div>
+          <div class="t-dot" style="background:#2e2e2e"></div>
+          <div class="t-dot" style="background:#2e2e2e"></div>
+          <div class="url">app.lastword.io / dashboard</div>
+        </div>
+        <div class="screen-ph">
+          <div class="ph-label">
+            <p>Dashboard screenshot — placeholder</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PROBLEM -->
+  <section class="section" id="problem">
+    <div class="wrap z">
+      <div class="label">The problem</div>
+      <h2>Cancellation surveys give you<br><em>percentages,</em> not reasons.</h2>
+      <p class="sec-body">Customers pick the first option and skip the text field. You learn nothing you can act on.</p>
+
+      <div class="problem-layout">
+        <div>
+          <div class="p-col-head dim">Old way — static surveys</div>
+          <div class="p-item">
+            <strong>They pick the first answer</strong>
+            <p>"Too expensive" gets 40% of clicks because it's the first option. The real reason never gets typed.</p>
+          </div>
+          <div class="p-item">
+            <strong>No follow-up is possible</strong>
+            <p>A static form can't ask "is it price or did the team never adopt it?" The depth simply isn't there.</p>
+          </div>
+          <div class="p-item">
+            <strong>Aggregate data with no resolution</strong>
+            <p>30% said pricing. So what? Knowing the breakdown doesn't tell you what to change.</p>
+          </div>
+          <div class="p-item">
+            <strong>The only offer you have is a discount</strong>
+            <p>Without knowing the real reason, you can't match a solution. So you cut price and train the wrong behavior.</p>
+          </div>
+        </div>
+        <div>
+          <div class="p-col-head lit">Last Word — AI conversations</div>
+          <div class="p-item">
+            <strong>The AI follows up</strong>
+            <p>It hears "too expensive," then asks "is that budget, or did your team stop using it?" Gets to the truth.</p>
+          </div>
+          <div class="p-item">
+            <strong>Reflective listening, 3–5 exchanges</strong>
+            <p>Casual, human, never defensive. Surfaces the actual cancellation driver in a few short turns.</p>
+          </div>
+          <div class="p-item">
+            <strong>Structured insight extracted automatically</strong>
+            <p>Category, deep reason, sentiment, key quote, feature gaps, competitor mentions — every time.</p>
+          </div>
+          <div class="p-item">
+            <strong>The right retention path, matched precisely</strong>
+            <p>Pause, downgrade, fix & follow-up, concierge onboarding, or graceful offboard. No discounts. Just solutions.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CONVERSATION -->
+  <section class="section" id="conversation">
+    <div class="wrap z">
+      <div class="label">A real interview</div>
+      <h2>Watch an AI conversation<br>become <em>structured intelligence.</em></h2>
+      <p class="sec-body">Every exchange is short, human, and purposeful. The insight is extracted automatically when the interview ends.</p>
+
+      <div class="convo-wrap">
+        <div class="convo-header">
+          <span class="convo-title">Last Word · session #1047 · Alex — Acme Co · Pro plan</span>
+          <span class="convo-status"><span class="status-dot"></span>interview complete</span>
+        </div>
+        <div class="convo-body">
+          <div class="convo-chat">
+            <div class="msg">
+              <div class="msg-who ai">Last Word</div>
+              <div class="msg-bubble ai-b">Hey — before you go, I'd love to understand what's not working. What's the main reason you're cancelling today?</div>
+            </div>
+            <div class="msg">
+              <div class="msg-who">Alex</div>
+              <div class="msg-bubble">Honestly, it's too expensive for what we get out of it.</div>
+            </div>
+            <div class="msg">
+              <div class="msg-who ai">Last Word</div>
+              <div class="msg-bubble ai-b">That's fair. Is it more that the features you need aren't there, or that your team never really adopted it day-to-day?</div>
+            </div>
+            <div class="msg">
+              <div class="msg-who">Alex</div>
+              <div class="msg-bubble">Second one. I'm the only person who ever used it. Everyone else just stayed in Linear.</div>
+            </div>
+            <div class="msg">
+              <div class="msg-who ai">Last Word</div>
+              <div class="msg-bubble ai-b">Got it — so the real issue is adoption, not price. Would a 20-minute onboarding call with your whole team change that?</div>
+            </div>
+          </div>
+          <div class="convo-divider"></div>
+          <div class="convo-insight">
+            <div class="insight-label">Extracted insight</div>
+            <div class="insight-row">
+              <div class="ir-key">Surface reason</div>
+              <div class="ir-val dim">Too expensive</div>
+            </div>
+            <div class="insight-row">
+              <div class="ir-key">Real reason</div>
+              <div class="ir-val">Low team adoption — 1 of 4 seats used</div>
+            </div>
+            <div class="insight-row">
+              <div class="ir-key">Category</div>
+              <div class="ir-val dim">product_fit</div>
+            </div>
+            <div class="insight-row">
+              <div class="ir-key">Salvageable</div>
+              <div class="ir-val accent">Yes</div>
+            </div>
+            <div class="insight-row">
+              <div class="ir-key">Competitor mentioned</div>
+              <div class="ir-val dim">Linear</div>
+            </div>
+            <div class="insight-row">
+              <div class="ir-key">Retention path</div>
+              <div class="ir-val accent">Concierge onboarding</div>
+            </div>
+            <div class="insight-row" style="margin-bottom:0">
+              <div class="ir-key">Key quote</div>
+              <div class="ir-val" style="font-size:13px; color: var(--text-60); font-style:italic; line-height:1.5">"I'm the only person who ever used it."</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section class="section" id="how">
+    <div class="wrap z">
+      <div class="label">How it works</div>
+      <h2>One script tag.<br>Running in <em>minutes.</em></h2>
+      <p class="sec-body">No backend changes. No SDK. Paste it into your cancellation page and Last Word handles the rest.</p>
+
+      <div class="how-grid">
+        <div class="how-card">
+          <div class="how-num">01 — Deploy</div>
+          <h3>Add the widget</h3>
+          <p>One script tag with your API key. The widget runs in an isolated iframe — never conflicts with your CSS, never blocks a cancellation. API failures degrade silently.</p>
+        </div>
+        <div class="how-card">
+          <div class="how-num">02 — Configure</div>
+          <h3>Tell it about your product</h3>
+          <p>Paste your URL to auto-extract logo and brand colors. Set product name, plans, and which competitors to track. The AI uses all of it to personalize every interview.</p>
+        </div>
+        <div class="how-card">
+          <div class="how-num">03 — Automate</div>
+          <h3>AI runs every interview</h3>
+          <p>3–5 exchanges per customer. Casual, human, never defensive. The AI adapts based on plan, account age, MRR, and seats — high-value accounts get a different response.</p>
+        </div>
+        <div class="how-card">
+          <div class="how-num">04 — Learn</div>
+          <h3>Conversations become intelligence</h3>
+          <p>Category, deep reasons, key quote, competitor mentions, feature gaps, sentiment — structured and stored automatically. Slack alerts for high-value cancellations.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section class="section" id="features">
+    <div class="wrap z">
+      <div class="label">Capabilities</div>
+      <h2>Everything you need to<br>understand <em>why</em> customers leave.</h2>
+
+      <div class="feat-list">
+        <div class="f-card">
+          <div class="f-idx">01</div>
+          <h3>AI exit conversations</h3>
+          <p>3–5 exchange interviews with reflective listening. Gets past "too expensive" to the real driver every time.</p>
+        </div>
+        <div class="f-card">
+          <div class="f-idx">02</div>
+          <h3>Structured extraction</h3>
+          <p>Category, deep reason, sentiment, salvageable status, key quote, competitor mentions, and feature gaps — automatically.</p>
+        </div>
+        <div class="f-card">
+          <div class="f-idx">03</div>
+          <h3>Smart retention paths</h3>
+          <p>Five paths matched to the real problem. Pause, downgrade, fix & follow-up, concierge, or graceful offboard.</p>
+        </div>
+        <div class="f-card">
+          <div class="f-idx">04</div>
+          <h3>Conditional rules engine</h3>
+          <p>Different AI behavior based on plan, MRR, account age, or seat count. High-value accounts handled differently.</p>
+        </div>
+        <div class="f-card">
+          <div class="f-idx">05</div>
+          <h3>Auto branding</h3>
+          <p>Paste your URL. Logo and brand colors are extracted automatically. The widget matches your product.</p>
+        </div>
+        <div class="f-card">
+          <div class="f-idx">06</div>
+          <h3>Slack & webhooks</h3>
+          <p>Real-time alerts on high-value cancellations. Pipe insights directly into your existing workflow.</p>
+        </div>
+        <div class="f-card">
+          <div class="f-idx">07</div>
+          <h3>Competitor intelligence</h3>
+          <p>Every competitor mentioned across every interview is tracked and ranked. Know exactly who you're losing to.</p>
+        </div>
+        <div class="f-card">
+          <div class="f-idx">08</div>
+          <h3>Feature gap tracking</h3>
+          <p>Recurring requests from cancellations are grouped and surfaced. A direct line to your product roadmap.</p>
+        </div>
+        <div class="f-card">
+          <div class="f-idx">09</div>
+          <h3>Safe by default</h3>
+          <p>Sandboxed iframe. Origin-validated messaging. API failures are silent. The cancellation flow is never blocked.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- RETENTION PATHS -->
+  <section class="section" id="retention">
+    <div class="wrap z">
+      <div class="label">Retention paths</div>
+      <h2>Five solutions.<br><em>No discounts.</em></h2>
+      <p class="sec-body" style="margin-bottom: 0;">Discounts devalue your product. Last Word matches the real problem to the precise fix.</p>
+
+      <div class="paths-list">
+        <div class="path-card">
+          <div class="path-n">01</div>
+          <div class="path-accent-bar"></div>
+          <h4>Pause Auto-Renewal</h4>
+          <p>Temporary budget crunch or project gap. Come back on their terms.</p>
+        </div>
+        <div class="path-card">
+          <div class="path-n">02</div>
+          <div class="path-accent-bar"></div>
+          <h4>Downgrade Plan</h4>
+          <p>Wrong tier. Keep them at the right price point.</p>
+        </div>
+        <div class="path-card">
+          <div class="path-n">03</div>
+          <div class="path-accent-bar"></div>
+          <h4>Fix & Follow Up</h4>
+          <p>Specific bug. Commit to the fix with a personal follow-up.</p>
+        </div>
+        <div class="path-card">
+          <div class="path-n">04</div>
+          <div class="path-accent-bar"></div>
+          <h4>Concierge Onboarding</h4>
+          <p>Under-adopted team. One call changes adoption permanently.</p>
+        </div>
+        <div class="path-card">
+          <div class="path-n">05</div>
+          <div class="path-accent-bar"></div>
+          <h4>Graceful Offboard</h4>
+          <p>Unsolvable. Leave a good impression. Keep the door open.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ANALYTICS -->
+  <section class="section" id="analytics">
+    <div class="wrap z">
+      <div class="label">Dashboard</div>
+      <h2>Churn data that becomes<br>a <em>product strategy.</em></h2>
+      <p class="sec-body">Not more charts. Structured intelligence from actual conversations, organized so you can act on it.</p>
+
+      <div class="analytics-split">
+        <div>
+          <div class="m-row">
+            <div class="m-cell">
+              <div class="m-lbl">Interviews · 30d</div>
+              <div class="m-num accent">143</div>
+              <div class="m-delta up">↑ 12% vs prior</div>
+            </div>
+            <div class="m-cell">
+              <div class="m-lbl">Customers saved</div>
+              <div class="m-num">38</div>
+              <div class="m-delta up">↑ 7 this month</div>
+            </div>
+          </div>
+          <div class="m-row">
+            <div class="m-cell">
+              <div class="m-lbl">Salvageable rate</div>
+              <div class="m-num">61%</div>
+            </div>
+            <div class="m-cell">
+              <div class="m-lbl">Top churn driver</div>
+              <div class="m-num" style="font-size: 22px; margin-top: 8px; line-height: 1.3;">Product fit</div>
+            </div>
+          </div>
+          <div class="chart-block" style="margin-top: 10px;">
+            <div class="chart-title">Churn by category</div>
+            <div class="b-row">
+              <div class="b-lbl">product_fit</div>
+              <div class="b-track"><div class="b-fill hi" style="width:38%"></div></div>
+              <div class="b-pct">38%</div>
+            </div>
+            <div class="b-row">
+              <div class="b-lbl">pricing</div>
+              <div class="b-track"><div class="b-fill" style="width:27%"></div></div>
+              <div class="b-pct">27%</div>
+            </div>
+            <div class="b-row">
+              <div class="b-lbl">competition</div>
+              <div class="b-track"><div class="b-fill" style="width:18%"></div></div>
+              <div class="b-pct">18%</div>
+            </div>
+            <div class="b-row">
+              <div class="b-lbl">support</div>
+              <div class="b-track"><div class="b-fill" style="width:10%"></div></div>
+              <div class="b-pct">10%</div>
+            </div>
+            <div class="b-row">
+              <div class="b-lbl">other</div>
+              <div class="b-track"><div class="b-fill" style="width:7%"></div></div>
+              <div class="b-pct">7%</div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="screen-sm">
+            <div class="screen-sm-bar">
+              <div class="t-dot" style="background:#2e2e2e;width:9px;height:9px"></div>
+              <div class="t-dot" style="background:#2e2e2e;width:9px;height:9px"></div>
+              <div class="t-dot" style="background:#2e2e2e;width:9px;height:9px"></div>
+              <span style="font-family:var(--mono);font-size:10px;color:var(--text-18);margin-left:8px">Analytics · Last Word</span>
+            </div>
+            <div class="screen-sm-ph">
+              <div class="sm-ph-lbl">analytics screenshot — placeholder</div>
+            </div>
+          </div>
+          <div class="screen-sm">
+            <div class="screen-sm-bar">
+              <div class="t-dot" style="background:#2e2e2e;width:9px;height:9px"></div>
+              <div class="t-dot" style="background:#2e2e2e;width:9px;height:9px"></div>
+              <div class="t-dot" style="background:#2e2e2e;width:9px;height:9px"></div>
+              <span style="font-family:var(--mono);font-size:10px;color:var(--text-18);margin-left:8px">Transcript view</span>
+            </div>
+            <div class="screen-sm-ph" style="aspect-ratio: 16/7;">
+              <div class="sm-ph-lbl">transcript screenshot — placeholder</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TESTIMONIALS -->
+  <section class="section" id="testimonials">
+    <div class="wrap z">
+      <div class="label">From founders</div>
+      <h2>Used by teams who want to<br>know the <em>real</em> answer.</h2>
+
+      <div class="testi-list">
+        <div class="t-card">
+          <p>"Last Word surfaced something we hadn't seen in two years of surveys: <strong>half our churned users never invited a second teammate.</strong> That became our entire next sprint."</p>
+          <div class="t-author">
+            <div class="t-dot-av">👨‍💻</div>
+            <div>
+              <div class="t-name">Marcus Chen</div>
+              <div class="t-role">Co-founder, Flowbase</div>
+            </div>
+          </div>
+        </div>
+        <div class="t-card">
+          <p>"The Fix & Follow Up path saved <strong>11 customers this month</strong> — each one got a personal commitment to a specific fix. No discounts, no churn."</p>
+          <div class="t-author">
+            <div class="t-dot-av">👩‍💼</div>
+            <div>
+              <div class="t-name">Sarah Okafor</div>
+              <div class="t-role">Head of Growth, Optic</div>
+            </div>
+          </div>
+        </div>
+        <div class="t-card">
+          <p>"15 minutes from signup to first interview. <strong>The competitor tracking alone</strong> — I finally know it's Linear, not pricing. That changes everything."</p>
+          <div class="t-author">
+            <div class="t-dot-av">🧑‍🚀</div>
+            <div>
+              <div class="t-name">Jamie Rivera</div>
+              <div class="t-role">Founder, Patchwork</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PRICING -->
+  <section class="section" id="pricing">
+    <div class="wrap z">
+      <div class="label">Pricing</div>
+      <h2>Pay for interviews,<br>not seats.</h2>
+      <p class="sec-body">Usage-based. No per-user tax. Scales with your cancellation volume.</p>
+
+      <div class="price-list">
+        <div class="pr-card">
+          <div class="pr-tier">Starter</div>
+          <div class="pr-amount"><sup>$</sup>49</div>
+          <div class="pr-period">per month</div>
+          <div class="pr-rule"></div>
+          <ul class="pr-feats">
+            <li><span class="ck">✓</span>50 interviews / month</li>
+            <li><span class="ck">✓</span>All 5 retention paths</li>
+            <li><span class="ck">✓</span>Dashboard & analytics</li>
+            <li><span class="ck">✓</span>1 Slack channel</li>
+            <li><span class="ck">✓</span>7-day conversation history</li>
+          </ul>
+          <a href="#" class="pr-btn">Get started</a>
+        </div>
+
+        <div class="pr-card feat">
+          <div class="pr-tier">Growth — most popular</div>
+          <div class="pr-amount"><sup>$</sup>149</div>
+          <div class="pr-period">per month</div>
+          <div class="pr-rule"></div>
+          <ul class="pr-feats">
+            <li><span class="ck">✓</span>300 interviews / month</li>
+            <li><span class="ck">✓</span>All 5 retention paths</li>
+            <li><span class="ck">✓</span>Conditional rules engine</li>
+            <li><span class="ck">✓</span>Webhooks & Slack</li>
+            <li><span class="ck">✓</span>Competitor & feature gap tracking</li>
+            <li><span class="ck">✓</span>30-day history</li>
+          </ul>
+          <a href="#" class="pr-btn">Get started</div>
+        </div>
+
+        <div class="pr-card">
+          <div class="pr-tier">Scale</div>
+          <div class="pr-amount"><sup>$</sup>399</div>
+          <div class="pr-period">per month</div>
+          <div class="pr-rule"></div>
+          <ul class="pr-feats">
+            <li><span class="ck">✓</span>Unlimited interviews</li>
+            <li><span class="ck">✓</span>Everything in Growth</li>
+            <li><span class="ck">✓</span>Custom AI prompt rules</li>
+            <li><span class="ck">✓</span>Custom retention copy</li>
+            <li><span class="ck">✓</span>Priority support</li>
+            <li><span class="ck">✓</span>Unlimited history</li>
+          </ul>
+          <a href="#" class="pr-btn">Get started</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="cta-section">
+    <div class="wrap-xs z">
+      <div class="label" style="justify-content: center; text-align: center;">Get early access</div>
+      <h2>Start learning from the<br>customers who leave.</h2>
+      <p>One script tag. First insight in 24 hours. Cancel anytime — we'll interview you about why.</p>
+      <div class="cta-form">
+        <input class="cta-field" type="email" placeholder="you@yourproduct.com" />
+        <a href="#" class="btn-accent" style="white-space: nowrap; flex-shrink: 0;">Request access →</a>
+      </div>
+      <div class="cta-note">No credit card · setup under 15 minutes</div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="wrap z">
+      <div class="foot">
+        <span class="logo" style="font-size: 15px; color: var(--text-35);">Last Word</span>
+        <span class="foot-copy">© 2026 Last Word</span>
+        <div class="foot-links">
+          <a href="#">Docs</a>
+          <a href="#">Privacy</a>
+          <a href="#">Terms</a>
+          <a href="#">Status</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>

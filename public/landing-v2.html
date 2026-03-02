@@ -1,0 +1,1383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Last Word — AI exit interviews</title>
+  <meta name="description" content="AI-powered exit interviews. Real reasons. Real retention. No surveys." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #04040a;
+      --bg2: #07070f;
+      --surface: rgba(255,255,255,0.03);
+      --surface2: rgba(255,255,255,0.055);
+      --border: rgba(255,255,255,0.08);
+      --border-bright: rgba(0,255,163,0.3);
+
+      --lime: #00ffa3;
+      --lime-dim: rgba(0,255,163,0.1);
+      --lime-glow: rgba(0,255,163,0.25);
+      --pink: #ff2d78;
+      --pink-dim: rgba(255,45,120,0.1);
+      --blue: #4d9fff;
+      --blue-dim: rgba(77,159,255,0.1);
+      --gold: #ffd700;
+
+      --text: #f4f4f8;
+      --text-dim: rgba(244,244,248,0.55);
+      --text-faint: rgba(244,244,248,0.25);
+
+      --mono: 'Space Mono', monospace;
+      --sans: 'Space Grotesk', sans-serif;
+    }
+
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+    a { color: inherit; text-decoration: none; }
+
+    /* ── NOISE OVERLAY ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      opacity: 0.025;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+    }
+
+    /* ── GRID BACKGROUND ── */
+    .grid-bg {
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(0,255,163,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,255,163,0.04) 1px, transparent 1px);
+      background-size: 48px 48px;
+      mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, black 0%, transparent 100%);
+      pointer-events: none;
+    }
+
+    /* ── LAYOUT ── */
+    .wrap { max-width: 1140px; margin: 0 auto; padding: 0 28px; position: relative; z-index: 1; }
+    .wrap-sm { max-width: 720px; margin: 0 auto; padding: 0 28px; position: relative; z-index: 1; }
+
+    /* ── NAV ── */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      border-bottom: 1px solid var(--border);
+      background: rgba(4,4,10,0.82);
+      backdrop-filter: blur(20px) saturate(1.4);
+    }
+    .nav-inner {
+      display: flex; align-items: center; justify-content: space-between;
+      height: 56px;
+    }
+    .logo {
+      font-family: var(--mono);
+      font-size: 15px;
+      font-weight: 700;
+      display: flex; align-items: center; gap: 10px;
+      letter-spacing: -0.02em;
+    }
+    .logo-mark {
+      width: 28px; height: 28px;
+      border: 1px solid var(--lime);
+      border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      position: relative;
+      box-shadow: 0 0 12px var(--lime-glow), inset 0 0 12px rgba(0,255,163,0.06);
+    }
+    .logo-mark::after {
+      content: '';
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--lime);
+      box-shadow: 0 0 8px var(--lime);
+      animation: blink 2.4s ease-in-out infinite;
+    }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+    .logo-text { color: var(--text); }
+    .logo-version {
+      font-size: 10px;
+      background: var(--lime-dim);
+      border: 1px solid var(--border-bright);
+      color: var(--lime);
+      padding: 2px 7px;
+      border-radius: 4px;
+      letter-spacing: 0.05em;
+    }
+    .nav-links {
+      display: flex; align-items: center; gap: 28px;
+      font-size: 13px; color: var(--text-dim);
+    }
+    .nav-links a:hover { color: var(--text); }
+    .nav-btn {
+      font-family: var(--mono);
+      font-size: 12px; font-weight: 700;
+      padding: 8px 18px;
+      border: 1px solid var(--lime);
+      border-radius: 6px;
+      color: var(--lime);
+      background: var(--lime-dim);
+      box-shadow: 0 0 16px var(--lime-glow);
+      transition: all 0.15s;
+      letter-spacing: 0.03em;
+    }
+    .nav-btn:hover {
+      background: rgba(0,255,163,0.18);
+      box-shadow: 0 0 28px var(--lime-glow);
+    }
+
+    /* ── HERO ── */
+    .hero {
+      min-height: 100vh;
+      display: flex; flex-direction: column; justify-content: center;
+      padding: 80px 0 60px;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero-glow-1 {
+      position: absolute;
+      top: -200px; left: 50%; transform: translateX(-50%);
+      width: 900px; height: 600px;
+      background: radial-gradient(ellipse, rgba(0,255,163,0.07) 0%, transparent 65%);
+      pointer-events: none;
+    }
+    .hero-glow-2 {
+      position: absolute;
+      top: 40%; right: -200px;
+      width: 600px; height: 600px;
+      background: radial-gradient(ellipse, rgba(255,45,120,0.05) 0%, transparent 65%);
+      pointer-events: none;
+    }
+
+    .hero-eyebrow {
+      display: flex; align-items: center; gap: 10px;
+      font-family: var(--mono);
+      font-size: 11px; letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--lime);
+      margin-bottom: 32px;
+    }
+    .hero-eyebrow::before {
+      content: '';
+      width: 32px; height: 1px;
+      background: var(--lime);
+      box-shadow: 0 0 8px var(--lime);
+    }
+    .hero-eyebrow::after {
+      content: '';
+      width: 32px; height: 1px;
+      background: var(--lime);
+      box-shadow: 0 0 8px var(--lime);
+    }
+
+    h1 {
+      font-size: clamp(52px, 7.5vw, 96px);
+      font-weight: 700;
+      line-height: 0.95;
+      letter-spacing: -0.04em;
+      margin-bottom: 32px;
+    }
+    .h1-line2 {
+      display: block;
+      background: linear-gradient(90deg, var(--lime) 0%, #00e5ff 60%, var(--lime) 100%);
+      background-size: 200% auto;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: shimmer 4s linear infinite;
+    }
+    @keyframes shimmer { to { background-position: 200% center; } }
+
+    .hero-sub {
+      font-size: 19px;
+      color: var(--text-dim);
+      max-width: 520px;
+      line-height: 1.55;
+      margin-bottom: 44px;
+    }
+    .hero-sub strong { color: var(--text); font-weight: 600; }
+
+    .hero-ctas {
+      display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+      margin-bottom: 64px;
+    }
+    .btn-main {
+      display: inline-flex; align-items: center; gap: 10px;
+      background: var(--lime);
+      color: #04040a;
+      font-family: var(--mono);
+      font-size: 13px; font-weight: 700;
+      padding: 14px 28px;
+      border-radius: 8px;
+      letter-spacing: 0.02em;
+      box-shadow: 0 0 32px rgba(0,255,163,0.35);
+      transition: all 0.15s;
+    }
+    .btn-main:hover { box-shadow: 0 0 52px rgba(0,255,163,0.55); transform: translateY(-1px); }
+    .btn-ghost {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-family: var(--mono);
+      font-size: 12px; color: var(--text-dim);
+      padding: 14px 0;
+      letter-spacing: 0.03em;
+      border-bottom: 1px solid transparent;
+      transition: all 0.15s;
+    }
+    .btn-ghost:hover { color: var(--text); border-color: var(--border); }
+
+    /* ── HERO STATS STRIP ── */
+    .hero-stats {
+      display: flex; align-items: stretch; gap: 0;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      max-width: 680px;
+    }
+    .hero-stat {
+      flex: 1;
+      padding: 20px 24px;
+      border-right: 1px solid var(--border);
+      background: var(--surface);
+    }
+    .hero-stat:last-child { border-right: none; }
+    .hero-stat-val {
+      font-family: var(--mono);
+      font-size: 26px; font-weight: 700;
+      color: var(--lime);
+      letter-spacing: -0.02em;
+      text-shadow: 0 0 20px rgba(0,255,163,0.5);
+      margin-bottom: 4px;
+    }
+    .hero-stat-label {
+      font-size: 11px; color: var(--text-faint);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    /* ── MARQUEE ── */
+    .marquee-section {
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 0;
+      overflow: hidden;
+      position: relative;
+    }
+    .marquee-track {
+      display: flex; gap: 48px;
+      animation: scroll 22s linear infinite;
+      width: max-content;
+    }
+    @keyframes scroll { from { transform: translateX(0) } to { transform: translateX(-50%) } }
+    .marquee-item {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-faint);
+      white-space: nowrap;
+      display: flex; align-items: center; gap: 16px;
+    }
+    .marquee-item .dot {
+      width: 4px; height: 4px;
+      border-radius: 50%;
+      background: var(--lime);
+      box-shadow: 0 0 6px var(--lime);
+    }
+
+    /* ── SECTION SHARED ── */
+    .section { padding: 96px 0; position: relative; }
+    .tag {
+      font-family: var(--mono);
+      font-size: 11px; letter-spacing: 0.12em;
+      text-transform: uppercase; color: var(--lime);
+      margin-bottom: 20px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .tag::before { content: '//'; opacity: 0.4; }
+    h2 {
+      font-size: clamp(32px, 4vw, 52px);
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+      margin-bottom: 20px;
+    }
+    .section-sub {
+      font-size: 18px;
+      color: var(--text-dim);
+      line-height: 1.6;
+      max-width: 540px;
+    }
+
+    /* ── PROBLEM ── */
+    .vs-split {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 0;
+      margin-top: 64px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .vs-col { padding: 0; }
+    .vs-header {
+      padding: 20px 28px;
+      border-bottom: 1px solid var(--border);
+      font-family: var(--mono);
+      font-size: 11px; letter-spacing: 0.1em;
+      text-transform: uppercase;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .vs-header.bad { color: rgba(255,45,120,0.7); background: var(--pink-dim); }
+    .vs-header.good { color: var(--lime); background: var(--lime-dim); }
+    .vs-items { padding: 8px 0; }
+    .vs-item {
+      padding: 20px 28px;
+      border-bottom: 1px solid var(--border);
+      font-size: 14px; line-height: 1.55;
+      color: var(--text-dim);
+    }
+    .vs-item:last-child { border-bottom: none; }
+    .vs-item strong { display: block; font-size: 15px; color: var(--text); margin-bottom: 4px; font-weight: 600; }
+    .vs-divider {
+      width: 1px;
+      background: var(--border);
+      display: flex; align-items: center; justify-content: center;
+      position: relative;
+    }
+    .vs-pill {
+      position: sticky; top: 50%;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 50%;
+      width: 44px; height: 44px;
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--mono);
+      font-size: 11px; font-weight: 700;
+      color: var(--text-faint);
+      z-index: 2;
+    }
+
+    /* ── TERMINAL DEMO ── */
+    .terminal {
+      background: #020208;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      margin-top: 56px;
+      box-shadow: 0 0 60px rgba(0,255,163,0.06), 0 40px 80px rgba(0,0,0,0.5);
+    }
+    .terminal-bar {
+      background: rgba(255,255,255,0.03);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 20px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .t-dot { width: 10px; height: 10px; border-radius: 50%; }
+    .terminal-title {
+      flex: 1; text-align: center;
+      font-family: var(--mono);
+      font-size: 11px; color: var(--text-faint);
+      letter-spacing: 0.06em;
+    }
+    .terminal-body { padding: 28px; }
+    .t-line {
+      font-family: var(--mono);
+      font-size: 13px; line-height: 1.8;
+      display: flex; gap: 12px;
+    }
+    .t-prefix { color: var(--lime); user-select: none; }
+    .t-prefix.ai { color: var(--blue); }
+    .t-prefix.user-p { color: var(--pink); }
+    .t-text { color: rgba(244,244,248,0.8); }
+    .t-dim { color: var(--text-faint); }
+    .t-green { color: var(--lime); }
+    .t-blue { color: var(--blue); }
+    .t-pink { color: var(--pink); }
+    .t-gold { color: var(--gold); }
+    .t-divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 20px 0;
+    }
+    .t-json { padding-left: 24px; }
+
+    /* ── HOW IT WORKS ── */
+    .steps-v2 {
+      position: relative;
+      margin-top: 64px;
+    }
+    .step-v2 {
+      display: grid;
+      grid-template-columns: 64px 1fr;
+      gap: 28px;
+      margin-bottom: 2px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 36px 40px;
+      border-radius: 0;
+      position: relative;
+      transition: border-color 0.2s;
+    }
+    .step-v2:first-child { border-radius: 12px 12px 0 0; }
+    .step-v2:last-child { border-radius: 0 0 12px 12px; margin-bottom: 0; }
+    .step-v2:hover { border-color: rgba(0,255,163,0.2); }
+    .step-v2::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 0; bottom: 0; width: 2px;
+      background: linear-gradient(180deg, transparent, var(--lime), transparent);
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    .step-v2:hover::before { opacity: 1; }
+    .step-num-v2 {
+      font-family: var(--mono);
+      font-size: 32px; font-weight: 700;
+      color: var(--lime);
+      opacity: 0.25;
+      line-height: 1;
+      margin-top: 4px;
+    }
+    .step-content h3 {
+      font-size: 20px; font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 10px;
+    }
+    .step-content p { font-size: 15px; color: var(--text-dim); line-height: 1.6; }
+    .step-tag {
+      display: inline-block;
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      background: var(--lime-dim);
+      border: 1px solid var(--border-bright);
+      color: var(--lime);
+      padding: 3px 8px;
+      border-radius: 4px;
+      margin-bottom: 12px;
+    }
+
+    /* ── FEATURE CARDS ── */
+    .feat-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1px;
+      background: var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      margin-top: 64px;
+    }
+    .feat-card {
+      background: var(--bg2);
+      padding: 32px 28px;
+      position: relative;
+      transition: background 0.2s;
+    }
+    .feat-card:hover { background: rgba(0,255,163,0.03); }
+    .feat-number {
+      font-family: var(--mono);
+      font-size: 11px; color: var(--text-faint);
+      letter-spacing: 0.06em;
+      margin-bottom: 20px;
+    }
+    .feat-card h3 {
+      font-size: 16px; font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 10px;
+    }
+    .feat-card p { font-size: 13px; color: var(--text-dim); line-height: 1.6; }
+    .feat-glyph {
+      font-size: 22px;
+      margin-bottom: 16px;
+      display: block;
+    }
+
+    /* ── PATHS ── */
+    .paths-v2 { padding: 96px 0; }
+    .paths-row {
+      display: flex;
+      gap: 12px;
+      margin-top: 56px;
+      flex-wrap: wrap;
+    }
+    .path-v2 {
+      flex: 1;
+      min-width: 160px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 28px 22px;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.2s;
+      cursor: default;
+    }
+    .path-v2::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0; right: 0; height: 2px;
+      background: var(--lime);
+      transform: scaleX(0);
+      transition: transform 0.2s;
+      transform-origin: left;
+    }
+    .path-v2:hover { border-color: rgba(0,255,163,0.3); transform: translateY(-3px); }
+    .path-v2:hover::after { transform: scaleX(1); }
+    .path-v2 .num {
+      font-family: var(--mono);
+      font-size: 10px; letter-spacing: 0.08em;
+      color: var(--text-faint); margin-bottom: 16px;
+    }
+    .path-v2 h4 { font-size: 15px; font-weight: 700; margin-bottom: 8px; letter-spacing: -0.01em; }
+    .path-v2 p { font-size: 12px; color: var(--text-faint); line-height: 1.5; }
+    .no-disc {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-family: var(--mono);
+      font-size: 11px; letter-spacing: 0.06em;
+      background: rgba(255,215,0,0.08);
+      border: 1px solid rgba(255,215,0,0.2);
+      color: var(--gold);
+      padding: 6px 14px; border-radius: 99px;
+      margin-bottom: 44px;
+    }
+
+    /* ── ANALYTICS SECTION ── */
+    .analytics-section { padding: 96px 0; }
+    .analytics-layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 56px;
+      align-items: start;
+      margin-top: 64px;
+    }
+    .metric-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+    .m-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+    .m-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--lime-glow), transparent);
+    }
+    .m-label { font-size: 11px; color: var(--text-faint); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 8px; font-family: var(--mono); }
+    .m-val { font-family: var(--mono); font-size: 32px; font-weight: 700; letter-spacing: -0.03em; color: var(--lime); text-shadow: 0 0 20px rgba(0,255,163,0.3); }
+    .m-val.neutral { color: var(--text); text-shadow: none; }
+    .m-delta { font-size: 11px; color: var(--lime); margin-top: 4px; font-family: var(--mono); }
+    .m-delta.red { color: var(--pink); }
+
+    .bar-chart { margin-top: 12px; }
+    .bar-row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+    .bar-label { font-size: 12px; color: var(--text-dim); width: 110px; flex-shrink: 0; font-family: var(--mono); }
+    .bar-track { flex: 1; height: 6px; background: rgba(255,255,255,0.06); border-radius: 3px; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 3px; background: var(--lime); transition: width 1s cubic-bezier(0.4,0,0.2,1); box-shadow: 0 0 8px rgba(0,255,163,0.4); }
+    .bar-fill.pink { background: var(--pink); box-shadow: 0 0 8px rgba(255,45,120,0.4); }
+    .bar-fill.blue { background: var(--blue); box-shadow: 0 0 8px rgba(77,159,255,0.4); }
+    .bar-fill.gold { background: var(--gold); box-shadow: 0 0 8px rgba(255,215,0,0.3); }
+    .bar-fill.muted { background: rgba(255,255,255,0.2); box-shadow: none; }
+    .bar-pct { font-family: var(--mono); font-size: 11px; color: var(--text-faint); width: 36px; text-align: right; }
+
+    .screenshot-v2 {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 0 60px rgba(0,255,163,0.05), 0 40px 80px rgba(0,0,0,0.5);
+    }
+    .sv2-bar {
+      background: rgba(255,255,255,0.025);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 18px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .sv2-placeholder {
+      aspect-ratio: 4/3;
+      display: flex; align-items: center; justify-content: center;
+      background: linear-gradient(135deg, #06060e 0%, #0a0a18 50%, #060610 100%);
+      position: relative;
+      overflow: hidden;
+    }
+    .sv2-placeholder::before {
+      content: '';
+      position: absolute; inset: 0;
+      background:
+        repeating-linear-gradient(0deg, transparent, transparent 47px, rgba(0,255,163,0.03) 47px, rgba(0,255,163,0.03) 48px),
+        repeating-linear-gradient(90deg, transparent, transparent 47px, rgba(0,255,163,0.03) 47px, rgba(0,255,163,0.03) 48px);
+    }
+    .sv2-label { text-align: center; z-index: 1; }
+    .sv2-label .icon { font-size: 40px; opacity: 0.2; margin-bottom: 10px; }
+    .sv2-label p { font-family: var(--mono); font-size: 11px; color: var(--text-faint); letter-spacing: 0.06em; }
+
+    /* ── TESTIMONIALS ── */
+    .testi-v2 { padding: 96px 0; }
+    .testi-grid-v2 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 56px;
+    }
+    .testi-v2-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 28px;
+      position: relative;
+      transition: border-color 0.2s;
+    }
+    .testi-v2-card:hover { border-color: rgba(0,255,163,0.2); }
+    .testi-v2-card::before {
+      content: '"';
+      position: absolute;
+      top: 20px; right: 24px;
+      font-size: 64px; line-height: 1;
+      color: rgba(0,255,163,0.08);
+      font-family: Georgia, serif;
+    }
+    .testi-v2-text {
+      font-size: 15px; line-height: 1.65;
+      color: var(--text-dim);
+      margin-bottom: 24px;
+    }
+    .testi-v2-text strong { color: var(--text); font-weight: 600; }
+    .testi-v2-author { display: flex; align-items: center; gap: 12px; }
+    .testi-v2-avatar {
+      width: 34px; height: 34px; border-radius: 50%;
+      background: var(--lime-dim); border: 1px solid var(--border-bright);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px;
+    }
+    .testi-v2-name { font-size: 14px; font-weight: 600; font-family: var(--mono); letter-spacing: -0.01em; }
+    .testi-v2-role { font-size: 11px; color: var(--text-faint); }
+
+    /* ── PRICING ── */
+    .pricing-v2 { padding: 96px 0; }
+    .pricing-grid-v2 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1px;
+      background: var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      margin-top: 56px;
+    }
+    .p-card {
+      background: var(--bg2);
+      padding: 36px 28px;
+      position: relative;
+    }
+    .p-card.featured { background: rgba(0,255,163,0.04); }
+    .p-badge {
+      font-family: var(--mono);
+      font-size: 10px; letter-spacing: 0.1em;
+      text-transform: uppercase;
+      background: var(--lime);
+      color: #04040a;
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 4px;
+      margin-bottom: 16px;
+      font-weight: 700;
+    }
+    .p-tier { font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em; color: var(--text-faint); text-transform: uppercase; margin-bottom: 12px; }
+    .p-price { font-family: var(--mono); font-size: 52px; font-weight: 700; letter-spacing: -0.04em; line-height: 1; margin-bottom: 4px; }
+    .p-price sup { font-size: 22px; vertical-align: super; opacity: 0.6; }
+    .p-period { font-size: 13px; color: var(--text-faint); margin-bottom: 28px; }
+    .p-feats { list-style: none; display: flex; flex-direction: column; gap: 11px; margin-bottom: 28px; }
+    .p-feats li { font-size: 13px; color: var(--text-dim); display: flex; align-items: flex-start; gap: 10px; line-height: 1.4; }
+    .p-feats li .check { color: var(--lime); font-size: 12px; flex-shrink: 0; margin-top: 1px; font-family: var(--mono); }
+    .p-cta {
+      display: block; text-align: center;
+      font-family: var(--mono);
+      font-size: 12px; font-weight: 700; letter-spacing: 0.04em;
+      padding: 12px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+      text-transform: uppercase;
+      transition: all 0.15s;
+    }
+    .p-card.featured .p-cta {
+      background: var(--lime);
+      border-color: var(--lime);
+      color: #04040a;
+      box-shadow: 0 0 24px rgba(0,255,163,0.3);
+    }
+    .p-cta:hover { opacity: 0.78; }
+
+    /* ── FINAL CTA ── */
+    .final-cta {
+      padding: 120px 0;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .final-cta::before {
+      content: '';
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 800px; height: 500px;
+      background: radial-gradient(ellipse, rgba(0,255,163,0.07) 0%, transparent 65%);
+      pointer-events: none;
+    }
+    .final-cta h2 { font-size: clamp(36px, 5vw, 60px); margin-bottom: 16px; }
+    .final-cta p { font-size: 18px; color: var(--text-dim); max-width: 420px; margin: 0 auto 40px; }
+    .input-row {
+      display: flex; gap: 10px;
+      max-width: 420px; margin: 0 auto;
+    }
+    .cta-inp {
+      flex: 1;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 13px 16px;
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 13px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .cta-inp:focus { border-color: var(--lime); box-shadow: 0 0 0 3px rgba(0,255,163,0.1); }
+    .cta-inp::placeholder { color: var(--text-faint); }
+    .final-note { font-family: var(--mono); font-size: 11px; color: var(--text-faint); margin-top: 16px; letter-spacing: 0.05em; }
+
+    /* ── FOOTER ── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 40px 0 28px;
+    }
+    .foot-inner {
+      display: flex; align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap; gap: 20px;
+    }
+    .foot-copy { font-family: var(--mono); font-size: 11px; color: var(--text-faint); letter-spacing: 0.04em; }
+    .foot-links { display: flex; gap: 20px; font-family: var(--mono); font-size: 11px; color: var(--text-faint); letter-spacing: 0.04em; }
+    .foot-links a:hover { color: var(--lime); }
+
+    /* ── GLOW DIVIDER ── */
+    .glow-divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--lime-glow), transparent);
+      margin: 0;
+    }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 920px) {
+      .feat-grid { grid-template-columns: 1fr 1fr; }
+      .testi-grid-v2, .pricing-grid-v2 { grid-template-columns: 1fr; }
+      .analytics-layout { grid-template-columns: 1fr; }
+      .nav-links { display: none; }
+      .vs-split { grid-template-columns: 1fr; }
+      .vs-divider { display: none; }
+      .paths-row { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 600px) {
+      h1 { font-size: 44px; }
+      .feat-grid { grid-template-columns: 1fr; }
+      .hero-stats { flex-direction: column; }
+      .metric-row { grid-template-columns: 1fr; }
+      .input-row { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav>
+    <div class="wrap">
+      <div class="nav-inner">
+        <div class="logo">
+          <div class="logo-mark"></div>
+          <span class="logo-text">last-word</span>
+          <span class="logo-version">v2.0</span>
+        </div>
+        <div class="nav-links">
+          <a href="#problem">Problem</a>
+          <a href="#how">How it works</a>
+          <a href="#features">Features</a>
+          <a href="#pricing">Pricing</a>
+        </div>
+        <a href="#" class="nav-btn">$ get_access →</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="grid-bg"></div>
+    <div class="hero-glow-1"></div>
+    <div class="hero-glow-2"></div>
+    <div class="wrap">
+      <div class="hero-eyebrow">AI-powered exit intelligence</div>
+
+      <h1>
+        Stop guessing.<br>
+        <span class="h1-line2">Start knowing.</span>
+      </h1>
+
+      <p class="hero-sub">
+        Last Word runs an <strong>AI conversation</strong> when a customer cancels. It surfaces the real reason — not the first option they clicked — and responds with the exact retention path that matches their actual problem.
+      </p>
+
+      <div class="hero-ctas">
+        <a href="#" class="btn-main">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 1l2 5h5l-4 3 2 5-5-3-5 3 2-5-4-3h5z" fill="currentColor"/></svg>
+          Get early access
+        </a>
+        <a href="#how" class="btn-ghost">
+          See the AI in action ↓
+        </a>
+      </div>
+
+      <div class="hero-stats">
+        <div class="hero-stat">
+          <div class="hero-stat-val">~15m</div>
+          <div class="hero-stat-label">to first insight</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-val">1</div>
+          <div class="hero-stat-label">script tag needed</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-val">5</div>
+          <div class="hero-stat-label">retention paths</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-val">0</div>
+          <div class="hero-stat-label">discounts required</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MARQUEE -->
+  <div class="marquee-section">
+    <div class="marquee-track">
+      <div class="marquee-item"><span class="dot"></span>AI-powered interviews</div>
+      <div class="marquee-item"><span class="dot"></span>structured insight extraction</div>
+      <div class="marquee-item"><span class="dot"></span>competitor intelligence</div>
+      <div class="marquee-item"><span class="dot"></span>feature gap tracking</div>
+      <div class="marquee-item"><span class="dot"></span>conditional rules engine</div>
+      <div class="marquee-item"><span class="dot"></span>slack & webhook alerts</div>
+      <div class="marquee-item"><span class="dot"></span>auto branding</div>
+      <div class="marquee-item"><span class="dot"></span>graceful offboarding</div>
+      <div class="marquee-item"><span class="dot"></span>AI-powered interviews</div>
+      <div class="marquee-item"><span class="dot"></span>structured insight extraction</div>
+      <div class="marquee-item"><span class="dot"></span>competitor intelligence</div>
+      <div class="marquee-item"><span class="dot"></span>feature gap tracking</div>
+      <div class="marquee-item"><span class="dot"></span>conditional rules engine</div>
+      <div class="marquee-item"><span class="dot"></span>slack & webhook alerts</div>
+      <div class="marquee-item"><span class="dot"></span>auto branding</div>
+      <div class="marquee-item"><span class="dot"></span>graceful offboarding</div>
+    </div>
+  </div>
+
+  <!-- PROBLEM -->
+  <section class="section" id="problem">
+    <div class="wrap">
+      <div class="tag">Problem</div>
+      <h2>Cancellation surveys<br>are broken by design.</h2>
+      <p class="section-sub">When customers cancel, they click the first option and skip the text field. You get percentages, not reasons.</p>
+
+      <div class="vs-split">
+        <div class="vs-col">
+          <div class="vs-header bad">✗ &nbsp;Old way: static surveys</div>
+          <div class="vs-items">
+            <div class="vs-item">
+              <strong>Customers pick the nearest answer</strong>
+              "Too expensive" gets 40% of clicks — not because it's true, but because it's first on the list.
+            </div>
+            <div class="vs-item">
+              <strong>No follow-up possible</strong>
+              A checkbox can't ask "is it price, or did the team never adopt it?" You never dig past the surface.
+            </div>
+            <div class="vs-item">
+              <strong>Useless aggregate data</strong>
+              Knowing 30% said "pricing" tells you nothing about what to fix. Retention requires specifics, not tallies.
+            </div>
+            <div class="vs-item">
+              <strong>Blunt retention attempts</strong>
+              Without knowing the real reason, the only offer you have is a discount — which trains the wrong behavior.
+            </div>
+          </div>
+        </div>
+        <div class="vs-divider">
+          <div class="vs-pill">vs</div>
+        </div>
+        <div class="vs-col">
+          <div class="vs-header good">✓ &nbsp;Last Word: AI conversations</div>
+          <div class="vs-items">
+            <div class="vs-item">
+              <strong>A real conversation follows up</strong>
+              The AI hears "too expensive," then asks "is that a budget thing, or did the team not end up using it?" and gets to the truth.
+            </div>
+            <div class="vs-item">
+              <strong>Reflective listening that goes deeper</strong>
+              3–5 exchanges in a casual, human tone. Curious, never defensive. Gets to the actual cancellation driver.
+            </div>
+            <div class="vs-item">
+              <strong>Structured insight on every interview</strong>
+              Category, deep reasons, sentiment, key quote, feature gaps, competitor mentions — extracted automatically.
+            </div>
+            <div class="vs-item">
+              <strong>The right retention path, not a discount</strong>
+              Match the real problem to the right offer: pause, downgrade, fix & follow up, concierge, or graceful offboard.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="glow-divider"></div>
+
+  <!-- TERMINAL DEMO -->
+  <section class="section" id="how">
+    <div class="wrap">
+      <div class="tag">Live demo</div>
+      <h2>An AI that listens, then acts.</h2>
+      <p class="section-sub">Watch Last Word run a real exit interview and extract structured intelligence from the conversation.</p>
+
+      <div class="terminal">
+        <div class="terminal-bar">
+          <div class="t-dot" style="background:#ff5f57"></div>
+          <div class="t-dot" style="background:#febc2e"></div>
+          <div class="t-dot" style="background:#28c840"></div>
+          <div class="terminal-title">last-word · exit interview · session #1047</div>
+        </div>
+        <div class="terminal-body">
+          <div class="t-line"><span class="t-prefix">SYS&nbsp;&nbsp;</span><span class="t-dim">User context received — plan: pro · account_age: 187d · seats: 4 · mrr: $299</span></div>
+          <div class="t-line"><span class="t-prefix">SYS&nbsp;&nbsp;</span><span class="t-dim">Loading config · rules engine evaluated · retention paths: enabled</span></div>
+          <hr class="t-divider">
+          <div class="t-line"><span class="t-prefix ai">AI &nbsp;&nbsp;</span><span class="t-text">Hey — before you cancel, I'd love to understand what's not working for you. What's the main reason you're leaving today?</span></div>
+          <div style="height:10px"></div>
+          <div class="t-line"><span class="t-prefix user-p">USER </span><span class="t-text">Honestly, it's too expensive for what we get out of it.</span></div>
+          <div style="height:10px"></div>
+          <div class="t-line"><span class="t-prefix ai">AI &nbsp;&nbsp;</span><span class="t-text">That makes sense. When you say it's not worth the price — is it more that the features you need aren't there, or that the team never really adopted it?</span></div>
+          <div style="height:10px"></div>
+          <div class="t-line"><span class="t-prefix user-p">USER </span><span class="t-text">Second one. I'm the only person who ever used it. Everyone else kept using Linear.</span></div>
+          <div style="height:10px"></div>
+          <div class="t-line"><span class="t-prefix ai">AI &nbsp;&nbsp;</span><span class="t-text">Got it — so the real issue is adoption, not price. Would a 20-minute onboarding call with your whole team change that before you go?</span></div>
+          <hr class="t-divider">
+          <div class="t-line"><span class="t-prefix">OUT&nbsp;&nbsp;</span><span class="t-dim">Extracting structured insight...</span></div>
+          <div style="height: 8px"></div>
+          <div class="t-line t-json"><span class="t-blue">"surface_reason"</span><span class="t-dim">: </span><span class="t-text">"Too expensive"</span></div>
+          <div class="t-line t-json"><span class="t-blue">"real_reason"</span><span class="t-dim">: &nbsp;&nbsp;</span><span class="t-green">"Low team adoption — only 1 of 4 seats actively used"</span></div>
+          <div class="t-line t-json"><span class="t-blue">"category"</span><span class="t-dim">: &nbsp;&nbsp;&nbsp;</span><span class="t-text">"product_fit"</span></div>
+          <div class="t-line t-json"><span class="t-blue">"salvageable"</span><span class="t-dim">: </span><span class="t-green">true</span></div>
+          <div class="t-line t-json"><span class="t-blue">"sentiment"</span><span class="t-dim">: &nbsp;&nbsp;</span><span class="t-text">"neutral"</span></div>
+          <div class="t-line t-json"><span class="t-blue">"competitor"</span><span class="t-dim">: &nbsp;&nbsp;</span><span class="t-pink">"Linear"</span></div>
+          <div class="t-line t-json"><span class="t-blue">"retention_path"</span><span class="t-dim">: </span><span class="t-gold">"concierge_onboarding"</span></div>
+          <div class="t-line t-json"><span class="t-blue">"key_quote"</span><span class="t-dim">: &nbsp;&nbsp;</span><span class="t-text">"I'm the only person who ever used it"</span></div>
+          <div style="height: 8px"></div>
+          <div class="t-line"><span class="t-prefix">SYS&nbsp;&nbsp;</span><span class="t-dim t-green">✓ insight saved · webhook dispatched · retention path rendered</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section class="section" id="howitworks" style="padding-top: 0;">
+    <div class="wrap">
+      <div class="tag">Integration</div>
+      <h2>One script tag.<br>Running in minutes.</h2>
+      <p class="section-sub">No SDK to install. No backend changes. Drop it in and Last Word handles the rest.</p>
+
+      <div class="steps-v2">
+        <div class="step-v2">
+          <div class="step-num-v2">01</div>
+          <div class="step-content">
+            <div class="step-tag">deploy</div>
+            <h3>Add the widget to your cancellation page</h3>
+            <p>One script tag with your API key. Runs in an isolated iframe so it never conflicts with your CSS or blocks a cancellation. If the API fails, the iframe fails silently — your flow is never interrupted.</p>
+          </div>
+        </div>
+        <div class="step-v2">
+          <div class="step-num-v2">02</div>
+          <div class="step-content">
+            <div class="step-tag">configure</div>
+            <h3>Tell Last Word about your product</h3>
+            <p>Paste your URL for auto-branding (logo + colors extracted automatically). Set your product name, plans, competitors to watch, and retention path rules. The AI uses all of it to personalize every interview.</p>
+          </div>
+        </div>
+        <div class="step-v2">
+          <div class="step-num-v2">03</div>
+          <div class="step-content">
+            <div class="step-tag">automate</div>
+            <h3>The AI runs every interview, automatically</h3>
+            <p>3–5 exchanges per customer. Casual, human, never defensive. The AI adapts based on the user's plan, account age, MRR, and seat count — higher-value accounts get a different response.</p>
+          </div>
+        </div>
+        <div class="step-v2">
+          <div class="step-num-v2">04</div>
+          <div class="step-content">
+            <div class="step-tag">learn</div>
+            <h3>Every conversation becomes structured intelligence</h3>
+            <p>Category, deep reasons, key quote, competitor mentions, feature gaps, sentiment — extracted automatically and stored. Slack alerts for high-value cancellations. Everything flows into your dashboard.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="glow-divider"></div>
+
+  <!-- FEATURES -->
+  <section class="section" id="features">
+    <div class="wrap">
+      <div class="tag">Capabilities</div>
+      <h2>Built for founders who<br>want real answers.</h2>
+      <p class="section-sub">Not another churn analytics tool with more charts. Actual intelligence from actual conversations.</p>
+
+      <div class="feat-grid">
+        <div class="feat-card">
+          <div class="feat-number">F-01</div>
+          <span class="feat-glyph">🧠</span>
+          <h3>AI exit conversations</h3>
+          <p>3–5 exchange interviews in a casual, human tone. Reflective listening patterns. Gets past "too expensive" to the real driver.</p>
+        </div>
+        <div class="feat-card">
+          <div class="feat-number">F-02</div>
+          <span class="feat-glyph">⚗️</span>
+          <h3>Structured extraction</h3>
+          <p>Every conversation yields: category, deep reason, sentiment, salvageable status, key quote, competitor mentions, feature gaps.</p>
+        </div>
+        <div class="feat-card">
+          <div class="feat-number">F-03</div>
+          <span class="feat-glyph">🎯</span>
+          <h3>Smart retention paths</h3>
+          <p>5 paths matched to the real problem. Pause, downgrade, fix & follow-up, concierge, or graceful offboard. No discounts.</p>
+        </div>
+        <div class="feat-card">
+          <div class="feat-number">F-04</div>
+          <span class="feat-glyph">⚙️</span>
+          <h3>Rules engine</h3>
+          <p>Conditional logic based on plan, account age, MRR, or seats. High-value accounts get a different AI behavior — automatically.</p>
+        </div>
+        <div class="feat-card">
+          <div class="feat-number">F-05</div>
+          <span class="feat-glyph">🎨</span>
+          <h3>Auto branding</h3>
+          <p>Paste your URL. Last Word scrapes your logo and brand colors. The widget matches your product in seconds.</p>
+        </div>
+        <div class="feat-card">
+          <div class="feat-number">F-06</div>
+          <span class="feat-glyph">🔔</span>
+          <h3>Slack & webhooks</h3>
+          <p>Real-time alerts when a high-value customer completes an interview. Pipe insights into your existing workflow.</p>
+        </div>
+        <div class="feat-card">
+          <div class="feat-number">F-07</div>
+          <span class="feat-glyph">🔍</span>
+          <h3>Competitor tracking</h3>
+          <p>Every competitor mentioned across every interview is tracked and ranked. Know exactly who you're losing to and why.</p>
+        </div>
+        <div class="feat-card">
+          <div class="feat-number">F-08</div>
+          <span class="feat-glyph">🚧</span>
+          <h3>Feature gap clustering</h3>
+          <p>Recurring feature requests from cancellations are surfaced and grouped. A direct line to your roadmap.</p>
+        </div>
+        <div class="feat-card">
+          <div class="feat-number">F-09</div>
+          <span class="feat-glyph">🔐</span>
+          <h3>Safe by default</h3>
+          <p>Sandboxed iframe. Origin-validated messaging. API failures degrade silently. The cancellation flow is never blocked.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- RETENTION PATHS -->
+  <section class="paths-v2" id="retention">
+    <div class="wrap">
+      <div class="tag">Retention paths</div>
+      <h2>Five solutions.<br>Zero discounts.</h2>
+      <p class="section-sub" style="margin-bottom: 32px;">Discounts devalue your product and attract churners. Last Word matches the real cancellation reason to the fix that actually works.</p>
+      <div class="no-disc">⚡ discount-free retention only</div>
+      <div class="paths-row">
+        <div class="path-v2">
+          <div class="num">PATH-01</div>
+          <h4>Pause Auto-Renewal</h4>
+          <p>Temporary budget crunch or project gap. Come back when ready — on their terms.</p>
+        </div>
+        <div class="path-v2">
+          <div class="num">PATH-02</div>
+          <h4>Downgrade Plan</h4>
+          <p>Wrong tier for the use case. Keep them paying, at the right price point.</p>
+        </div>
+        <div class="path-v2">
+          <div class="num">PATH-03</div>
+          <h4>Fix & Follow Up</h4>
+          <p>Specific bug or performance issue. Commit to the fix. Personal follow-up closes the loop.</p>
+        </div>
+        <div class="path-v2">
+          <div class="num">PATH-04</div>
+          <h4>Concierge Onboarding</h4>
+          <p>Under-adopted team account. One call can change adoption permanently.</p>
+        </div>
+        <div class="path-v2">
+          <div class="num">PATH-05</div>
+          <h4>Graceful Offboard</h4>
+          <p>Unsolvable. Thank them warmly, leave a good impression, keep the door open.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="glow-divider"></div>
+
+  <!-- ANALYTICS -->
+  <section class="analytics-section" id="analytics">
+    <div class="wrap">
+      <div class="tag">Dashboard</div>
+      <h2>Turn churn data into<br>a product strategy.</h2>
+      <p class="section-sub">Stop reading exit surveys. Start reading exit intelligence.</p>
+
+      <div class="analytics-layout">
+        <div>
+          <div class="metric-row">
+            <div class="m-card">
+              <div class="m-label">Interviews · 30d</div>
+              <div class="m-val">143</div>
+              <div class="m-delta">↑ 12% vs prior period</div>
+            </div>
+            <div class="m-card">
+              <div class="m-label">Customers saved</div>
+              <div class="m-val">38</div>
+              <div class="m-delta">↑ 7 this month</div>
+            </div>
+          </div>
+          <div class="metric-row">
+            <div class="m-card">
+              <div class="m-label">Salvageable rate</div>
+              <div class="m-val neutral">61%</div>
+            </div>
+            <div class="m-card">
+              <div class="m-label">Top churn driver</div>
+              <div class="m-val neutral" style="font-size: 20px; padding-top: 8px;">Product fit</div>
+            </div>
+          </div>
+
+          <div class="m-card" style="margin-top: 10px;">
+            <div class="m-label" style="margin-bottom: 16px;">Churn breakdown</div>
+            <div class="bar-chart">
+              <div class="bar-row">
+                <div class="bar-label">product_fit</div>
+                <div class="bar-track"><div class="bar-fill" style="width:38%"></div></div>
+                <div class="bar-pct">38%</div>
+              </div>
+              <div class="bar-row">
+                <div class="bar-label">pricing</div>
+                <div class="bar-track"><div class="bar-fill pink" style="width:27%"></div></div>
+                <div class="bar-pct">27%</div>
+              </div>
+              <div class="bar-row">
+                <div class="bar-label">competition</div>
+                <div class="bar-track"><div class="bar-fill blue" style="width:18%"></div></div>
+                <div class="bar-pct">18%</div>
+              </div>
+              <div class="bar-row">
+                <div class="bar-label">support</div>
+                <div class="bar-track"><div class="bar-fill gold" style="width:10%"></div></div>
+                <div class="bar-pct">10%</div>
+              </div>
+              <div class="bar-row">
+                <div class="bar-label">other</div>
+                <div class="bar-track"><div class="bar-fill muted" style="width:7%"></div></div>
+                <div class="bar-pct">7%</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="screenshot-v2">
+            <div class="sv2-bar">
+              <div class="t-dot" style="background:#ff5f57; width:10px; height:10px;"></div>
+              <div class="t-dot" style="background:#febc2e; width:10px; height:10px;"></div>
+              <div class="t-dot" style="background:#28c840; width:10px; height:10px;"></div>
+              <span style="font-family: var(--mono); font-size: 11px; color: var(--text-faint); margin-left: 8px;">Dashboard · Last Word</span>
+            </div>
+            <div class="sv2-placeholder">
+              <div class="sv2-label">
+                <div class="icon">📊</div>
+                <p>Dashboard screenshot placeholder</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="screenshot-v2" style="margin-top: 12px;">
+            <div class="sv2-bar">
+              <div class="t-dot" style="background:#ff5f57; width:10px; height:10px;"></div>
+              <div class="t-dot" style="background:#febc2e; width:10px; height:10px;"></div>
+              <div class="t-dot" style="background:#28c840; width:10px; height:10px;"></div>
+              <span style="font-family: var(--mono); font-size: 11px; color: var(--text-faint); margin-left: 8px;">Conversation transcript</span>
+            </div>
+            <div class="sv2-placeholder" style="aspect-ratio: 16/7;">
+              <div class="sv2-label">
+                <div class="icon">💬</div>
+                <p>Transcript view screenshot placeholder</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TESTIMONIALS -->
+  <section class="testi-v2">
+    <div class="wrap">
+      <div class="tag">What founders say</div>
+      <h2>Used by teams who care<br>about why customers leave.</h2>
+      <div class="testi-grid-v2">
+        <div class="testi-v2-card">
+          <p class="testi-v2-text">"Last Word surfaced something we hadn't seen in two years of surveys: <strong>half our churned users never invited a second teammate.</strong> That became our entire next sprint."</p>
+          <div class="testi-v2-author">
+            <div class="testi-v2-avatar">👨‍💻</div>
+            <div>
+              <div class="testi-v2-name">Marcus Chen</div>
+              <div class="testi-v2-role">Co-founder, Flowbase</div>
+            </div>
+          </div>
+        </div>
+        <div class="testi-v2-card">
+          <p class="testi-v2-text">"The Fix & Follow Up path saved <strong>11 customers this month.</strong> We committed to specific bug fixes for each one. Zero discounts, zero churn on those accounts."</p>
+          <div class="testi-v2-author">
+            <div class="testi-v2-avatar">👩‍💼</div>
+            <div>
+              <div class="testi-v2-name">Sarah Okafor</div>
+              <div class="testi-v2-role">Head of Growth, Optic</div>
+            </div>
+          </div>
+        </div>
+        <div class="testi-v2-card">
+          <p class="testi-v2-text">"15 minutes from signup to first interview live. The competitor tracking alone — <strong>I finally know Linear is our real problem,</strong> not pricing."</p>
+          <div class="testi-v2-author">
+            <div class="testi-v2-avatar">🧑‍🚀</div>
+            <div>
+              <div class="testi-v2-name">Jamie Rivera</div>
+              <div class="testi-v2-role">Founder, Patchwork</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="glow-divider"></div>
+
+  <!-- PRICING -->
+  <section class="pricing-v2" id="pricing">
+    <div class="wrap">
+      <div class="tag">Pricing</div>
+      <h2>Pay for interviews,<br>not seats.</h2>
+      <p class="section-sub">Simple, usage-based pricing. No per-user tax. Scale with your actual cancellation volume.</p>
+
+      <div class="pricing-grid-v2">
+        <div class="p-card">
+          <div class="p-tier">Starter</div>
+          <div class="p-price"><sup>$</sup>49</div>
+          <div class="p-period">per month</div>
+          <ul class="p-feats">
+            <li><span class="check">✓</span> 50 interviews / month</li>
+            <li><span class="check">✓</span> All 5 retention paths</li>
+            <li><span class="check">✓</span> Dashboard & analytics</li>
+            <li><span class="check">✓</span> 1 Slack channel</li>
+            <li><span class="check">✓</span> 7-day history</li>
+          </ul>
+          <a href="#" class="p-cta">get started</a>
+        </div>
+
+        <div class="p-card featured">
+          <div class="p-badge">MOST POPULAR</div>
+          <div class="p-tier">Growth</div>
+          <div class="p-price"><sup>$</sup>149</div>
+          <div class="p-period">per month</div>
+          <ul class="p-feats">
+            <li><span class="check">✓</span> 300 interviews / month</li>
+            <li><span class="check">✓</span> All 5 retention paths</li>
+            <li><span class="check">✓</span> Conditional rules engine</li>
+            <li><span class="check">✓</span> Webhooks & Slack</li>
+            <li><span class="check">✓</span> Competitor & feature gap tracking</li>
+            <li><span class="check">✓</span> 30-day history</li>
+          </ul>
+          <a href="#" class="p-cta">get started</a>
+        </div>
+
+        <div class="p-card">
+          <div class="p-tier">Scale</div>
+          <div class="p-price"><sup>$</sup>399</div>
+          <div class="p-period">per month</div>
+          <ul class="p-feats">
+            <li><span class="check">✓</span> Unlimited interviews</li>
+            <li><span class="check">✓</span> Everything in Growth</li>
+            <li><span class="check">✓</span> Custom AI prompt rules</li>
+            <li><span class="check">✓</span> Custom retention copy</li>
+            <li><span class="check">✓</span> Priority support</li>
+            <li><span class="check">✓</span> Unlimited history</li>
+          </ul>
+          <a href="#" class="p-cta">get started</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FINAL CTA -->
+  <section class="final-cta">
+    <div class="wrap-sm">
+      <div class="tag" style="justify-content: center;">Get early access</div>
+      <h2>Start learning from<br>the customers who leave.</h2>
+      <p>One script tag. First insight in 24 hours. Cancel anytime — we'll interview you about why.</p>
+      <div class="input-row">
+        <input class="cta-inp" type="email" placeholder="you@yourproduct.com" />
+        <a href="#" class="btn-main" style="white-space: nowrap; flex-shrink: 0;">request access</a>
+      </div>
+      <div class="final-note">// no credit card · setup &lt; 15 minutes · cancel anytime</div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="wrap">
+      <div class="foot-inner">
+        <div class="logo" style="gap: 10px;">
+          <div class="logo-mark"></div>
+          <span class="logo-text">last-word</span>
+        </div>
+        <div class="foot-copy">© 2026 Last Word · exit interview intelligence</div>
+        <div class="foot-links">
+          <a href="#">docs</a>
+          <a href="#">privacy</a>
+          <a href="#">terms</a>
+          <a href="#">status</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>

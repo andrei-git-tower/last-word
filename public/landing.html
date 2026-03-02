@@ -1,0 +1,1424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Last Word — Exit interview intelligence for SaaS</title>
+  <meta name="description" content="AI-powered exit interviews that surface the real reason customers cancel — and offer smart retention paths that aren't just discounts." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0d0d0f;
+      --bg-card: #141416;
+      --bg-card2: #1a1a1e;
+      --border: #2a2a30;
+      --border-subtle: #1e1e24;
+      --accent: #7c6af7;
+      --accent-dim: rgba(124, 106, 247, 0.15);
+      --accent-glow: rgba(124, 106, 247, 0.4);
+      --green: #22c55e;
+      --green-dim: rgba(34, 197, 94, 0.12);
+      --red: #ef4444;
+      --text: #f0f0f5;
+      --text-muted: #9090a0;
+      --text-faint: #5a5a6e;
+      --radius: 12px;
+      --radius-sm: 8px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      font-size: 16px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a { color: inherit; text-decoration: none; }
+
+    /* ─── LAYOUT ─── */
+    .container {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+    .container-narrow {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* ─── NAV ─── */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(13, 13, 15, 0.85);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    .nav-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 60px;
+    }
+    .nav-logo {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .nav-logo-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+    }
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+    .nav-links a:hover { color: var(--text); }
+    .nav-cta {
+      background: var(--accent);
+      color: #fff;
+      font-size: 14px;
+      font-weight: 600;
+      padding: 8px 18px;
+      border-radius: 8px;
+      transition: opacity 0.15s;
+    }
+    .nav-cta:hover { opacity: 0.85; }
+
+    /* ─── HERO ─── */
+    .hero {
+      padding: 100px 0 80px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -200px; left: 50%;
+      transform: translateX(-50%);
+      width: 800px; height: 500px;
+      background: radial-gradient(ellipse, rgba(124, 106, 247, 0.12) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--accent-dim);
+      border: 1px solid rgba(124, 106, 247, 0.3);
+      color: #a89df7;
+      font-size: 13px;
+      font-weight: 500;
+      padding: 6px 14px;
+      border-radius: 99px;
+      margin-bottom: 28px;
+    }
+    .hero-badge-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+    h1 {
+      font-size: clamp(42px, 6vw, 72px);
+      font-weight: 900;
+      line-height: 1.08;
+      letter-spacing: -0.04em;
+      margin-bottom: 24px;
+    }
+    h1 .accent { color: var(--accent); }
+    .hero-sub {
+      font-size: 20px;
+      color: var(--text-muted);
+      max-width: 560px;
+      margin: 0 auto 40px;
+      line-height: 1.5;
+    }
+    .hero-actions {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+      font-weight: 700;
+      font-size: 16px;
+      padding: 14px 28px;
+      border-radius: var(--radius-sm);
+      transition: opacity 0.15s, transform 0.1s;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn-primary:hover { opacity: 0.88; transform: translateY(-1px); }
+    .btn-secondary {
+      color: var(--text-muted);
+      font-size: 15px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 14px 4px;
+      border-bottom: 1px solid transparent;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .btn-secondary:hover { color: var(--text); border-color: var(--border); }
+
+    /* ─── SOCIAL PROOF STRIP ─── */
+    .proof-strip {
+      border-top: 1px solid var(--border-subtle);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 18px 0;
+      margin: 0;
+    }
+    .proof-strip-inner {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 48px;
+      font-size: 13px;
+      color: var(--text-faint);
+      flex-wrap: wrap;
+    }
+    .proof-stat { display: flex; align-items: center; gap: 8px; }
+    .proof-stat strong { color: var(--text-muted); font-weight: 600; }
+
+    /* ─── SCREENSHOT HERO ─── */
+    .screenshot-hero {
+      padding: 64px 0 0;
+    }
+    .screenshot-frame {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 40px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04);
+      position: relative;
+    }
+    .screenshot-bar {
+      background: var(--bg-card2);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .traffic-dot {
+      width: 12px; height: 12px;
+      border-radius: 50%;
+    }
+    .screenshot-bar .url-bar {
+      flex: 1;
+      max-width: 320px;
+      margin: 0 auto;
+      background: var(--border-subtle);
+      border-radius: 6px;
+      padding: 4px 12px;
+      font-size: 12px;
+      color: var(--text-faint);
+      font-family: 'JetBrains Mono', monospace;
+      text-align: center;
+    }
+    .screenshot-placeholder {
+      width: 100%;
+      aspect-ratio: 16/9;
+      background: linear-gradient(135deg, #141420 0%, #1a1a2e 50%, #12121c 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .screenshot-placeholder::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(124,106,247,0.04) 39px, rgba(124,106,247,0.04) 40px),
+        repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(124,106,247,0.04) 39px, rgba(124,106,247,0.04) 40px);
+    }
+    .placeholder-label {
+      text-align: center;
+      z-index: 1;
+    }
+    .placeholder-label .icon {
+      font-size: 48px;
+      margin-bottom: 12px;
+      opacity: 0.3;
+    }
+    .placeholder-label p {
+      color: var(--text-faint);
+      font-size: 13px;
+    }
+
+    /* ─── PROBLEM SECTION ─── */
+    .section { padding: 96px 0; }
+    .section-label {
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 16px;
+    }
+    h2 {
+      font-size: clamp(30px, 4vw, 44px);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.15;
+      margin-bottom: 20px;
+    }
+    .section-sub {
+      font-size: 18px;
+      color: var(--text-muted);
+      line-height: 1.6;
+      max-width: 560px;
+    }
+
+    .problem-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2px;
+      margin-top: 64px;
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .problem-card {
+      background: var(--bg-card);
+      padding: 32px;
+    }
+    .problem-card:nth-child(3), .problem-card:nth-child(4) {
+      background: var(--bg-card2);
+    }
+    .problem-icon {
+      font-size: 28px;
+      margin-bottom: 16px;
+    }
+    .problem-card h3 {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 8px;
+    }
+    .problem-card p {
+      font-size: 14px;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+    .problem-card.bad h3 { color: var(--red); }
+    .problem-card.good h3 { color: var(--green); }
+
+    /* ─── HOW IT WORKS ─── */
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2px;
+      margin-top: 64px;
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .step {
+      background: var(--bg-card);
+      padding: 40px 32px;
+      position: relative;
+    }
+    .step-num {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 20px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .step h3 {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 12px;
+    }
+    .step p {
+      font-size: 14px;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+    .step-arrow {
+      position: absolute;
+      top: 40px; right: -12px;
+      width: 24px; height: 24px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      color: var(--text-faint);
+      z-index: 1;
+    }
+
+    /* ─── CODE SNIPPET ─── */
+    .code-section { padding: 96px 0; }
+    .code-block {
+      background: #0a0a10;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      margin-top: 48px;
+    }
+    .code-block-bar {
+      background: var(--bg-card2);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 12px;
+      color: var(--text-faint);
+    }
+    .code-block-bar .lang {
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--text-muted);
+    }
+    .copy-btn {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: 11px;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .copy-btn:hover { background: var(--border); }
+    pre {
+      padding: 28px;
+      overflow-x: auto;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 14px;
+      line-height: 1.7;
+    }
+    .tok-comment { color: #5a6070; }
+    .tok-tag { color: #e06c75; }
+    .tok-attr { color: #d19a66; }
+    .tok-string { color: #98c379; }
+    .tok-key { color: var(--accent); }
+    .tok-val { color: #56b6c2; }
+    .tok-func { color: #61afef; }
+
+    /* ─── FEATURES ─── */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2px;
+      margin-top: 64px;
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .feature-card {
+      background: var(--bg-card);
+      padding: 32px;
+      position: relative;
+      overflow: hidden;
+    }
+    .feature-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--accent), transparent);
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    .feature-card:hover::before { opacity: 1; }
+    .feature-icon {
+      width: 40px; height: 40px;
+      background: var(--accent-dim);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      margin-bottom: 20px;
+    }
+    .feature-card h3 {
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 10px;
+    }
+    .feature-card p {
+      font-size: 14px;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    /* ─── RETENTION PATHS ─── */
+    .paths-section { padding: 96px 0; background: var(--bg-card); }
+    .paths-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 16px;
+      margin-top: 56px;
+    }
+    .path-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px 20px;
+      text-align: center;
+      transition: border-color 0.2s, transform 0.15s;
+    }
+    .path-card:hover {
+      border-color: var(--accent);
+      transform: translateY(-2px);
+    }
+    .path-emoji { font-size: 28px; margin-bottom: 12px; }
+    .path-card h4 {
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      letter-spacing: -0.01em;
+    }
+    .path-card p {
+      font-size: 12px;
+      color: var(--text-faint);
+      line-height: 1.5;
+    }
+    .no-discount-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--green-dim);
+      border: 1px solid rgba(34, 197, 94, 0.25);
+      color: var(--green);
+      font-size: 12px;
+      font-weight: 600;
+      padding: 6px 12px;
+      border-radius: 99px;
+      margin-bottom: 40px;
+    }
+
+    /* ─── DASHBOARD SCREENSHOT ─── */
+    .dashboard-section { padding: 96px 0; }
+    .dashboard-split {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 64px;
+      align-items: center;
+      margin-top: 64px;
+    }
+    .dashboard-metrics {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 32px;
+    }
+    .metric-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 20px;
+    }
+    .metric-label {
+      font-size: 12px;
+      color: var(--text-faint);
+      margin-bottom: 6px;
+    }
+    .metric-value {
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+    }
+    .metric-value.green { color: var(--green); }
+    .metric-value.purple { color: var(--accent); }
+    .metric-delta {
+      font-size: 12px;
+      color: var(--green);
+      margin-top: 4px;
+    }
+
+    .mini-chart {
+      height: 48px;
+      background: var(--bg-card2);
+      border-radius: 6px;
+      margin-top: 12px;
+      overflow: hidden;
+      position: relative;
+    }
+    .mini-chart-bar {
+      position: absolute;
+      bottom: 0;
+      background: var(--accent);
+      border-radius: 3px 3px 0 0;
+      opacity: 0.6;
+    }
+    .mini-chart-bar.green { background: var(--green); }
+
+    /* ─── CONVERSATION DEMO ─── */
+    .chat-demo {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      margin-top: 48px;
+    }
+    .chat-demo-bar {
+      background: var(--bg-card2);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .chat-avatar {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      background: var(--accent-dim);
+      border: 1px solid rgba(124,106,247,0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+    }
+    .chat-demo-name {
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .chat-demo-sub {
+      font-size: 12px;
+      color: var(--text-faint);
+    }
+    .chat-body { padding: 24px; display: flex; flex-direction: column; gap: 16px; }
+    .chat-msg {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+    .chat-msg.user { flex-direction: row-reverse; }
+    .chat-bubble {
+      background: var(--bg-card2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 16px;
+      font-size: 14px;
+      line-height: 1.5;
+      max-width: 72%;
+    }
+    .chat-msg.user .chat-bubble {
+      background: var(--accent-dim);
+      border-color: rgba(124,106,247,0.25);
+    }
+    .chat-user-avatar {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      background: var(--border);
+      flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; color: var(--text-faint);
+    }
+    .chat-ai-avatar {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      background: var(--accent-dim);
+      border: 1px solid rgba(124,106,247,0.3);
+      flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px;
+    }
+    .insight-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 16px 20px;
+      font-size: 13px;
+      margin-top: 8px;
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+    .insight-item { display: flex; flex-direction: column; gap: 3px; }
+    .insight-key { font-size: 11px; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.06em; }
+    .insight-val { font-weight: 600; color: var(--text); }
+    .insight-val.purple { color: var(--accent); }
+    .insight-val.green { color: var(--green); }
+
+    /* ─── TESTIMONIALS ─── */
+    .testimonials { padding: 96px 0; }
+    .testi-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-top: 56px;
+    }
+    .testi-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px;
+    }
+    .testi-text {
+      font-size: 15px;
+      line-height: 1.65;
+      color: var(--text-muted);
+      margin-bottom: 20px;
+    }
+    .testi-text strong { color: var(--text); font-weight: 500; }
+    .testi-author {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .testi-avatar {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      background: var(--accent-dim);
+      border: 1px solid rgba(124,106,247,0.2);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px;
+    }
+    .testi-name { font-size: 14px; font-weight: 600; }
+    .testi-role { font-size: 12px; color: var(--text-faint); }
+    .stars { color: #fbbf24; font-size: 13px; margin-bottom: 16px; }
+
+    /* ─── PRICING ─── */
+    .pricing { padding: 96px 0; }
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-top: 56px;
+    }
+    .pricing-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 36px 28px;
+      position: relative;
+    }
+    .pricing-card.featured {
+      border-color: var(--accent);
+      background: linear-gradient(180deg, rgba(124,106,247,0.08) 0%, var(--bg-card) 100%);
+    }
+    .pricing-badge {
+      position: absolute;
+      top: -12px; left: 50%; transform: translateX(-50%);
+      background: var(--accent);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 12px;
+      border-radius: 99px;
+      white-space: nowrap;
+    }
+    .pricing-tier { font-size: 13px; font-weight: 600; color: var(--text-muted); margin-bottom: 8px; }
+    .pricing-price {
+      font-size: 44px;
+      font-weight: 900;
+      letter-spacing: -0.04em;
+      margin-bottom: 4px;
+    }
+    .pricing-price sup { font-size: 20px; vertical-align: super; font-weight: 600; }
+    .pricing-period { font-size: 14px; color: var(--text-faint); margin-bottom: 24px; }
+    .pricing-features {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 28px;
+    }
+    .pricing-features li {
+      font-size: 14px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+    .pricing-features li::before {
+      content: '✓';
+      color: var(--green);
+      font-weight: 700;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .pricing-cta {
+      display: block;
+      text-align: center;
+      padding: 12px;
+      border-radius: var(--radius-sm);
+      font-weight: 700;
+      font-size: 15px;
+      transition: opacity 0.15s;
+      background: var(--border);
+      color: var(--text);
+    }
+    .pricing-card.featured .pricing-cta {
+      background: var(--accent);
+      color: #fff;
+    }
+    .pricing-cta:hover { opacity: 0.8; }
+
+    /* ─── CTA SECTION ─── */
+    .cta-section {
+      padding: 96px 0;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .cta-section::before {
+      content: '';
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 600px; height: 400px;
+      background: radial-gradient(ellipse, rgba(124,106,247,0.1) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .cta-section h2 { margin-bottom: 16px; }
+    .cta-section p {
+      font-size: 18px;
+      color: var(--text-muted);
+      max-width: 460px;
+      margin: 0 auto 40px;
+    }
+    .cta-input-group {
+      display: flex;
+      gap: 10px;
+      max-width: 440px;
+      margin: 0 auto;
+    }
+    .cta-input {
+      flex: 1;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 12px 16px;
+      color: var(--text);
+      font-size: 15px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .cta-input:focus { border-color: var(--accent); }
+    .cta-input::placeholder { color: var(--text-faint); }
+
+    /* ─── FOOTER ─── */
+    footer {
+      border-top: 1px solid var(--border-subtle);
+      padding: 48px 0 32px;
+    }
+    .footer-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 24px;
+    }
+    .footer-left p {
+      font-size: 13px;
+      color: var(--text-faint);
+      margin-top: 6px;
+    }
+    .footer-links {
+      display: flex;
+      gap: 24px;
+      font-size: 13px;
+      color: var(--text-faint);
+    }
+    .footer-links a:hover { color: var(--text-muted); }
+
+    /* ─── RESPONSIVE ─── */
+    @media (max-width: 900px) {
+      .steps, .features-grid { grid-template-columns: 1fr; }
+      .paths-grid { grid-template-columns: repeat(2, 1fr); }
+      .problem-grid { grid-template-columns: 1fr; }
+      .dashboard-split { grid-template-columns: 1fr; }
+      .testi-grid, .pricing-grid { grid-template-columns: 1fr; }
+      .nav-links { display: none; }
+      .step-arrow { display: none; }
+    }
+    @media (max-width: 600px) {
+      h1 { font-size: 36px; }
+      .paths-grid { grid-template-columns: 1fr; }
+      .dashboard-metrics { grid-template-columns: 1fr; }
+      .cta-input-group { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav>
+    <div class="container">
+      <div class="nav-inner">
+        <a href="#" class="nav-logo">
+          <div class="nav-logo-dot"></div>
+          Last Word
+        </a>
+        <div class="nav-links">
+          <a href="#how-it-works">How it works</a>
+          <a href="#features">Features</a>
+          <a href="#pricing">Pricing</a>
+          <a href="#">Docs</a>
+        </div>
+        <a href="#" class="nav-cta">Get early access →</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="container-narrow">
+      <div class="hero-badge">
+        <div class="hero-badge-dot"></div>
+        AI-powered exit interviews for SaaS
+      </div>
+      <h1>Stop guessing why<br>customers <span class="accent">cancel</span></h1>
+      <p class="hero-sub">
+        Last Word intercepts cancellations with a short AI conversation that surfaces the real reason — then offers a smart retention path. Not a discount. A solution.
+      </p>
+      <div class="hero-actions">
+        <a href="#" class="btn-primary">
+          Get early access
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </a>
+        <a href="#how-it-works" class="btn-secondary">
+          See how it works
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 3v10M3 9l5 5 5-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- SOCIAL PROOF STRIP -->
+  <div class="proof-strip">
+    <div class="container">
+      <div class="proof-strip-inner">
+        <div class="proof-stat"><strong>2 min</strong> average setup time</div>
+        <div style="color: var(--border)">|</div>
+        <div class="proof-stat"><strong>1 script tag</strong> to deploy</div>
+        <div style="color: var(--border)">|</div>
+        <div class="proof-stat"><strong>5 retention paths</strong> — no discounts required</div>
+        <div style="color: var(--border)">|</div>
+        <div class="proof-stat"><strong>Real insights</strong> from day one</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- HERO SCREENSHOT -->
+  <div class="screenshot-hero">
+    <div class="container">
+      <div class="screenshot-frame">
+        <div class="screenshot-bar">
+          <div class="traffic-dot" style="background:#ef4444"></div>
+          <div class="traffic-dot" style="background:#fbbf24"></div>
+          <div class="traffic-dot" style="background:#22c55e"></div>
+          <div class="url-bar">app.lastword.io/dashboard</div>
+        </div>
+        <div class="screenshot-placeholder">
+          <div class="placeholder-label">
+            <div class="icon">📊</div>
+            <p>Dashboard screenshot — coming soon</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PROBLEM SECTION -->
+  <section class="section" id="problem">
+    <div class="container">
+      <div class="section-label">The problem</div>
+      <h2>Cancellation surveys are broken.<br>Conversations aren't.</h2>
+      <p class="section-sub">
+        When customers cancel, they click the first option and skip the text field. You get data — just not the truth.
+      </p>
+      <div class="problem-grid">
+        <div class="problem-card bad">
+          <div class="problem-icon">📋</div>
+          <h3>Static surveys fail</h3>
+          <p>Customers pick "too expensive" because it's the first option. The real reason — a missing feature, a confusing UX, a bug — never gets surfaced.</p>
+        </div>
+        <div class="problem-card bad">
+          <div class="problem-icon">🤷</div>
+          <h3>You learn nothing actionable</h3>
+          <p>Aggregate percentages don't tell you what to fix. You see "30% pricing" but have no idea what pricing actually meant to each person who left.</p>
+        </div>
+        <div class="problem-card good">
+          <div class="problem-icon">💬</div>
+          <h3>Conversations dig deeper</h3>
+          <p>A 3-turn AI conversation with reflective listening gets past the surface reason to the real driver — the one worth acting on.</p>
+        </div>
+        <div class="problem-card good">
+          <div class="problem-icon">⚡</div>
+          <h3>Structured insights, automatically</h3>
+          <p>Every conversation is distilled into a structured insight: category, sentiment, key quote, competitor mentions, and feature gaps — ready for your dashboard.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section class="section" id="how-it-works" style="padding-top: 0;">
+    <div class="container">
+      <div class="section-label">How it works</div>
+      <h2>One script tag.<br>Real answers in days.</h2>
+      <p class="section-sub">Drop it in your cancellation flow and Last Word handles the rest — from the conversation to the insight to the retention offer.</p>
+
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">Step 01</div>
+          <h3>Drop in the widget</h3>
+          <p>Add one script tag with your API key to your cancellation flow. Fully isolated via iframe — no CSS conflicts, no risk of blocking cancellations.</p>
+          <div class="step-arrow">→</div>
+        </div>
+        <div class="step">
+          <div class="step-num">Step 02</div>
+          <h3>AI runs the interview</h3>
+          <p>A short 3–5 exchange conversation in a casual, human tone. Never defensive. Always curious. Dig past "too expensive" to what's underneath.</p>
+          <div class="step-arrow">→</div>
+        </div>
+        <div class="step">
+          <div class="step-num">Step 03</div>
+          <h3>Get structured insights</h3>
+          <p>Each interview generates a structured record: category, deep reasons, sentiment, competitor mentions, feature gaps, and the key quote that explains everything.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CODE SNIPPET -->
+  <section class="code-section" id="install">
+    <div class="container-narrow">
+      <div class="section-label">Dead simple integration</div>
+      <h2>15 minutes from signup<br>to first insight</h2>
+      <p class="section-sub" style="margin-bottom: 0;">Paste one script tag. Send user context. Done. Last Word handles the rest.</p>
+    </div>
+    <div class="container">
+      <div class="code-block">
+        <div class="code-block-bar">
+          <span class="lang">your-cancellation-page.html</span>
+          <button class="copy-btn" onclick="this.textContent='Copied!'; setTimeout(()=>this.textContent='Copy',1500)">Copy</button>
+        </div>
+        <pre><code><span class="tok-comment">&lt;!-- Step 1: Add the Last Word widget to your cancellation page --&gt;</span>
+<span class="tok-tag">&lt;script</span>
+  <span class="tok-attr">src</span>=<span class="tok-string">"https://cdn.lastword.io/widget.js"</span>
+  <span class="tok-attr">data-api-key</span>=<span class="tok-string">"lw_live_xxxxxxxxxxxxxx"</span>
+<span class="tok-tag">&gt;&lt;/script&gt;</span>
+
+<span class="tok-comment">&lt;!-- Step 2: Trigger the interview with user context --&gt;</span>
+<span class="tok-tag">&lt;script&gt;</span>
+  <span class="tok-func">LastWord</span>.open({
+    <span class="tok-key">userId</span>:    <span class="tok-string">"usr_abc123"</span>,
+    <span class="tok-key">email</span>:     <span class="tok-string">"alex@acme.com"</span>,
+    <span class="tok-key">plan</span>:      <span class="tok-string">"pro"</span>,
+    <span class="tok-key">accountAge</span>: <span class="tok-val">187</span>,   <span class="tok-comment">// days</span>
+    <span class="tok-key">seats</span>:     <span class="tok-val">4</span>,
+    <span class="tok-key">mrr</span>:       <span class="tok-val">299</span>
+  });
+<span class="tok-tag">&lt;/script&gt;</span></code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- CONVERSATION DEMO -->
+  <section class="section" style="padding-top: 0;">
+    <div class="container-narrow">
+      <div class="section-label">See it in action</div>
+      <h2>A real conversation.<br>Real insight extracted.</h2>
+      <p class="section-sub" style="margin-bottom: 0;">Last Word asks follow-ups, listens, and distills the exchange into structured data your team can act on.</p>
+    </div>
+    <div class="container" style="margin-top: 48px;">
+      <div class="chat-demo">
+        <div class="chat-demo-bar">
+          <div class="chat-avatar">💬</div>
+          <div>
+            <div class="chat-demo-name">Last Word</div>
+            <div class="chat-demo-sub">Exit interview · Alex from Acme Co</div>
+          </div>
+        </div>
+        <div class="chat-body">
+          <div class="chat-msg ai">
+            <div class="chat-ai-avatar">🤖</div>
+            <div class="chat-bubble">Hey Alex — before you go, I'd love to understand what's not working for you. What's the main reason you're cancelling today?</div>
+          </div>
+          <div class="chat-msg user">
+            <div class="chat-user-avatar">A</div>
+            <div class="chat-bubble">Honestly, it's too expensive for what we get.</div>
+          </div>
+          <div class="chat-msg ai">
+            <div class="chat-ai-avatar">🤖</div>
+            <div class="chat-bubble">That makes sense. When you say it's not worth the price — is it that the features you use most aren't there, or more that the whole team never really adopted it?</div>
+          </div>
+          <div class="chat-msg user">
+            <div class="chat-user-avatar">A</div>
+            <div class="chat-bubble">Honestly the second one. We set it up but only I ever used it. The rest of the team kept using Linear for everything.</div>
+          </div>
+          <div class="chat-msg ai">
+            <div class="chat-ai-avatar">🤖</div>
+            <div class="chat-bubble">Got it — so the real issue is adoption, not price. Would it help if someone from our team did a 20-minute onboarding session with your whole team before you leave?</div>
+          </div>
+
+          <div style="border-top: 1px solid var(--border-subtle); margin: 8px 0;"></div>
+
+          <div style="font-size: 12px; color: var(--text-faint); padding: 0 4px 4px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;">Extracted insight</div>
+          <div class="insight-card">
+            <div class="insight-item">
+              <span class="insight-key">Surface reason</span>
+              <span class="insight-val">Too expensive</span>
+            </div>
+            <div class="insight-item">
+              <span class="insight-key">Real reason</span>
+              <span class="insight-val purple">Low team adoption</span>
+            </div>
+            <div class="insight-item">
+              <span class="insight-key">Category</span>
+              <span class="insight-val">product_fit</span>
+            </div>
+            <div class="insight-item">
+              <span class="insight-key">Salvageable</span>
+              <span class="insight-val green">Yes</span>
+            </div>
+            <div class="insight-item">
+              <span class="insight-key">Retention path</span>
+              <span class="insight-val purple">Concierge Onboarding</span>
+            </div>
+            <div class="insight-item">
+              <span class="insight-key">Competitor</span>
+              <span class="insight-val">Linear</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section class="section" id="features" style="padding-top: 0;">
+    <div class="container">
+      <div class="section-label">Features</div>
+      <h2>Everything you need to<br>understand churn.</h2>
+      <p class="section-sub">From the moment of cancellation to a dashboard full of actionable intelligence.</p>
+
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon">🧠</div>
+          <h3>AI-powered conversations</h3>
+          <p>3–5 exchange interviews that use reflective listening to get past surface reasons. Casual, never corporate. Curious, never defensive.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">📊</div>
+          <h3>Structured insight extraction</h3>
+          <p>Every interview yields a structured record: category, deep reasons, sentiment, salvageable status, competitor mentions, and the key quote.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🎯</div>
+          <h3>Smart retention paths</h3>
+          <p>Five intelligent offers — pause, downgrade, fix & follow-up, concierge onboarding, graceful offboard — matched to the real reason. No discounts.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">⚙️</div>
+          <h3>Conditional rules engine</h3>
+          <p>Apply different AI behaviors based on plan, account age, seats, or MRR. High-value accounts get a custom response. Everyone gets the right one.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🎨</div>
+          <h3>Auto-branding</h3>
+          <p>Paste your URL and Last Word extracts your logo and brand colors. The widget matches your product the moment you configure it.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🔔</div>
+          <h3>Slack & webhook alerts</h3>
+          <p>Get notified in real-time when a high-value customer completes an interview. Route insights directly into your existing workflow.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🔍</div>
+          <h3>Competitor intelligence</h3>
+          <p>Last Word tracks every competitor mentioned across your interviews. Know exactly who you're losing to and why — across all your customers.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🚧</div>
+          <h3>Feature gap tracking</h3>
+          <p>Identify recurring feature gaps mentioned in exit interviews. A direct line from cancellation data to your product roadmap.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🔐</div>
+          <h3>Isolated & safe</h3>
+          <p>The widget runs in a sandboxed iframe. API failures degrade gracefully — the cancellation flow is never blocked, no matter what.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- RETENTION PATHS -->
+  <section class="paths-section" id="retention">
+    <div class="container">
+      <div class="section-label">Retention paths</div>
+      <h2>Five ways to save a customer.<br>Zero discounts.</h2>
+      <p class="section-sub" style="margin-bottom: 32px;">Discounts devalue your product and attract the wrong customers. Last Word matches the actual problem to the right solution.</p>
+      <div class="no-discount-badge">
+        <span>✓</span> Discount-free retention only
+      </div>
+      <div class="paths-grid">
+        <div class="path-card">
+          <div class="path-emoji">⏸️</div>
+          <h4>Pause Auto-Renewal</h4>
+          <p>For customers with a temporary budget crunch or project gap. Come back when ready.</p>
+        </div>
+        <div class="path-card">
+          <div class="path-emoji">⬇️</div>
+          <h4>Downgrade Plan</h4>
+          <p>For price-sensitive users on the wrong tier. Keep them paying, just less.</p>
+        </div>
+        <div class="path-card">
+          <div class="path-emoji">🔧</div>
+          <h4>Fix & Follow Up</h4>
+          <p>For specific bugs or performance issues. Commit to the fix with a personal follow-up.</p>
+        </div>
+        <div class="path-card">
+          <div class="path-emoji">🎓</div>
+          <h4>Concierge Onboarding</h4>
+          <p>For under-adopted team accounts. One call can change everything.</p>
+        </div>
+        <div class="path-card">
+          <div class="path-emoji">👋</div>
+          <h4>Graceful Offboard</h4>
+          <p>For unsolvable situations. Thank them warmly. Leave the door open.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- DASHBOARD SECTION -->
+  <section class="dashboard-section" id="dashboard">
+    <div class="container">
+      <div class="section-label">Dashboard</div>
+      <div class="dashboard-split">
+        <div>
+          <h2>Turn cancellations into<br>a product strategy.</h2>
+          <p style="color: var(--text-muted); font-size: 16px; line-height: 1.6; margin: 16px 0 24px;">
+            Every interview feeds a dashboard that shows you your top churn drivers, save rates by retention path, competitor mentions, and the feature gaps worth building.
+          </p>
+          <div style="display: flex; flex-direction: column; gap: 12px; font-size: 14px; color: var(--text-muted);">
+            <div style="display: flex; gap: 10px; align-items: flex-start;">
+              <span style="color: var(--green); font-weight: 700;">✓</span>
+              <span>Churn breakdown by category — pricing, fit, competition, support, reliability</span>
+            </div>
+            <div style="display: flex; gap: 10px; align-items: flex-start;">
+              <span style="color: var(--green); font-weight: 700;">✓</span>
+              <span>Save rate by retention path — know what's working and what isn't</span>
+            </div>
+            <div style="display: flex; gap: 10px; align-items: flex-start;">
+              <span style="color: var(--green); font-weight: 700;">✓</span>
+              <span>Full conversation transcripts with the key quote highlighted</span>
+            </div>
+            <div style="display: flex; gap: 10px; align-items: flex-start;">
+              <span style="color: var(--green); font-weight: 700;">✓</span>
+              <span>Competitor leaderboard — ranked by frequency across all interviews</span>
+            </div>
+          </div>
+
+          <div class="dashboard-metrics">
+            <div class="metric-card">
+              <div class="metric-label">Interviews this month</div>
+              <div class="metric-value purple">143</div>
+              <div class="metric-delta">↑ 12% vs last month</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">Salvageable</div>
+              <div class="metric-value">61%</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">Customers saved</div>
+              <div class="metric-value green">38</div>
+              <div class="metric-delta">↑ 7 vs last month</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">Top churn driver</div>
+              <div class="metric-value" style="font-size: 18px; margin-top: 4px;">Product fit</div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="screenshot-frame">
+            <div class="screenshot-bar">
+              <div class="traffic-dot" style="background:#ef4444"></div>
+              <div class="traffic-dot" style="background:#fbbf24"></div>
+              <div class="traffic-dot" style="background:#22c55e"></div>
+              <div class="url-bar">Analytics · Last Word</div>
+            </div>
+            <div class="screenshot-placeholder" style="aspect-ratio: 4/3;">
+              <div class="placeholder-label">
+                <div class="icon">📈</div>
+                <p>Analytics dashboard screenshot</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TESTIMONIALS -->
+  <section class="testimonials" style="padding-top: 0;">
+    <div class="container">
+      <div class="section-label">Early feedback</div>
+      <h2>What founders are saying.</h2>
+      <div class="testi-grid">
+        <div class="testi-card">
+          <div class="stars">★★★★★</div>
+          <p class="testi-text">"Within the first week, Last Word surfaced something we hadn't seen in two years of cancellation surveys: <strong>half our churned users never invited a second teammate.</strong> That became our next sprint."</p>
+          <div class="testi-author">
+            <div class="testi-avatar">👨‍💻</div>
+            <div>
+              <div class="testi-name">Marcus Chen</div>
+              <div class="testi-role">Co-founder, Flowbase</div>
+            </div>
+          </div>
+        </div>
+        <div class="testi-card">
+          <div class="stars">★★★★★</div>
+          <p class="testi-text">"The 'Fix & Follow Up' path alone has been worth it. We've saved <strong>11 customers this month</strong> by committing to specific bug fixes. No discount required."</p>
+          <div class="testi-author">
+            <div class="testi-avatar">👩‍💼</div>
+            <div>
+              <div class="testi-name">Sarah Okafor</div>
+              <div class="testi-role">Head of Growth, Optic</div>
+            </div>
+          </div>
+        </div>
+        <div class="testi-card">
+          <div class="stars">★★★★★</div>
+          <p class="testi-text">"Setup literally took 15 minutes. I added the script tag, pasted our URL for branding, and the first interview came in the same day. <strong>The competitor tracking alone is gold.</strong>"</p>
+          <div class="testi-author">
+            <div class="testi-avatar">🧑‍🚀</div>
+            <div>
+              <div class="testi-name">Jamie Rivera</div>
+              <div class="testi-role">Founder, Patchwork</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PRICING -->
+  <section class="pricing" id="pricing" style="padding-top: 0;">
+    <div class="container">
+      <div class="section-label">Pricing</div>
+      <h2>Simple pricing.<br>Scales with your churn.</h2>
+      <p class="section-sub" style="margin-bottom: 0;">Pay for the interviews you actually need. No seats, no per-user pricing.</p>
+
+      <div class="pricing-grid">
+        <div class="pricing-card">
+          <div class="pricing-tier">Starter</div>
+          <div class="pricing-price"><sup>$</sup>49</div>
+          <div class="pricing-period">per month</div>
+          <ul class="pricing-features">
+            <li>Up to 50 interviews / month</li>
+            <li>All 5 retention paths</li>
+            <li>Dashboard & analytics</li>
+            <li>1 Slack notification channel</li>
+            <li>7-day conversation history</li>
+          </ul>
+          <a href="#" class="pricing-cta">Get started</a>
+        </div>
+
+        <div class="pricing-card featured">
+          <div class="pricing-badge">Most popular</div>
+          <div class="pricing-tier">Growth</div>
+          <div class="pricing-price"><sup>$</sup>149</div>
+          <div class="pricing-period">per month</div>
+          <ul class="pricing-features">
+            <li>Up to 300 interviews / month</li>
+            <li>All 5 retention paths</li>
+            <li>Dashboard & analytics</li>
+            <li>Conditional rules engine</li>
+            <li>Webhooks & Slack</li>
+            <li>Competitor & feature gap tracking</li>
+            <li>30-day conversation history</li>
+          </ul>
+          <a href="#" class="pricing-cta">Get started</a>
+        </div>
+
+        <div class="pricing-card">
+          <div class="pricing-tier">Scale</div>
+          <div class="pricing-price"><sup>$</sup>399</div>
+          <div class="pricing-period">per month</div>
+          <ul class="pricing-features">
+            <li>Unlimited interviews</li>
+            <li>Everything in Growth</li>
+            <li>Custom AI prompt rules</li>
+            <li>Priority support</li>
+            <li>Unlimited history</li>
+            <li>Custom retention path copy</li>
+          </ul>
+          <a href="#" class="pricing-cta">Get started</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA SECTION -->
+  <section class="cta-section">
+    <div class="container-narrow">
+      <div class="section-label">Get early access</div>
+      <h2>Start learning from<br>the customers who leave.</h2>
+      <p>Drop in one script tag. Get your first insight within 24 hours. Cancel anytime — we'll even interview you about why.</p>
+      <div class="cta-input-group">
+        <input class="cta-input" type="email" placeholder="you@yourproduct.com" />
+        <a href="#" class="btn-primary" style="white-space: nowrap;">Request access →</a>
+      </div>
+      <p style="font-size: 13px; color: var(--text-faint); margin-top: 16px;">No credit card required. Setup in under 15 minutes.</p>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="container">
+      <div class="footer-inner">
+        <div class="footer-left">
+          <div class="nav-logo">
+            <div class="nav-logo-dot"></div>
+            Last Word
+          </div>
+          <p>Exit interview intelligence for SaaS.</p>
+        </div>
+        <div class="footer-links">
+          <a href="#">Docs</a>
+          <a href="#">Privacy</a>
+          <a href="#">Terms</a>
+          <a href="#">Status</a>
+          <a href="#">Contact</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>
