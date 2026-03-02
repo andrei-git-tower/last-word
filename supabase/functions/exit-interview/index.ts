@@ -773,7 +773,10 @@ function shouldCloseFromDecision(
   return Boolean(decision.should_close_now && confident && questionGuardSatisfied);
 }
 
-const PROMISE_CLAIM_RE = /\b(?:we(?:'re| are)?\s+(?:building|shipping|launching|working on|rolling out)|on (?:the )?roadmap|coming soon|eta|in \d+\s*(?:days?|weeks?|months?)|will (?:ship|launch|add|have)|guarantee|definitely)\b/i;
+// Allow up to 2 modifier words between "we're/we are" and the action verb so that
+// phrases like "we're actually working on" or "we are currently building" are caught.
+// Also broadened "on the roadmap" to cover "on our roadmap", "on a roadmap", etc.
+const PROMISE_CLAIM_RE = /\b(?:we(?:'re| are)?\s+(?:\w+\s+){0,2}(?:building|shipping|launching|working on|rolling out)|on (?:the |our |a )?roadmap|coming soon|eta|in \d+\s*(?:days?|weeks?|months?)|will (?:ship|launch|add|have)|guarantee|definitely)\b/i;
 
 function sanitizeAssistantOutput(text: string): string {
   if (!text) return text;
@@ -1132,7 +1135,19 @@ serve(async (req) => {
     const accountId = account.id as string;
     const clientIp = getClientIp(req);
 
-    const accountRate = await checkRateLimit(`exit:acct:${accountId}`, 240, 60_000);
+    // Fan out all independent work in parallel — rate limits, config, rules, and
+    // body parse all only need accountId/clientIp and can run simultaneously.
+    const [accountRate, ipRate, configResult, rulesResult, body] = await Promise.all([
+      checkRateLimit(`exit:acct:${accountId}`, 240, 60_000),
+      checkRateLimit(`exit:ip:${clientIp}`, 180, 60_000),
+      supabase.from("configs").select("*").eq("account_id", accountId).single(),
+      supabase.from("rules")
+        .select("id, priority, condition_logic, conditions, prompt_addition")
+        .eq("account_id", accountId)
+        .order("priority", { ascending: true }),
+      req.json(),
+    ]);
+
     if (!accountRate.allowed) {
       return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again shortly." }), {
         status: 429,
@@ -1143,7 +1158,6 @@ serve(async (req) => {
         },
       });
     }
-    const ipRate = await checkRateLimit(`exit:ip:${clientIp}`, 180, 60_000);
     if (!ipRate.allowed) {
       return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again shortly." }), {
         status: 429,
@@ -1154,15 +1168,6 @@ serve(async (req) => {
         },
       });
     }
-
-    // Load config
-    const { data: configRow, error: configError } = await supabase
-      .from("configs")
-      .select("*")
-      .eq("account_id", accountId)
-      .single();
-
-    const body = await req.json();
 
     // Validate messages array before any processing.
     const rawMessages = body.messages;
@@ -1210,6 +1215,7 @@ serve(async (req) => {
       insightId = await createPartialInsight(supabase, accountId, userContext);
     }
 
+    const { data: configRow } = configResult;
     const config: AccountConfig = configRow ? {
       product_name: configRow.product_name,
       product_description: configRow.product_description,
@@ -1234,13 +1240,7 @@ serve(async (req) => {
       config.max_exchanges = config.min_exchanges;
     }
 
-    const { data: rulesRows } = await supabase
-      .from("rules")
-      .select("id, priority, condition_logic, conditions, prompt_addition")
-      .eq("account_id", accountId)
-      .order("priority", { ascending: true });
-
-    const rules: Rule[] = (rulesRows ?? []) as Rule[];
+    const rules: Rule[] = ((rulesResult.data ?? []) as Rule[]);
     const ruleInjection = matchRule(rules, userContext);
 
     const systemPrompt = buildSystemPrompt(config, userTurns, userContext, ruleInjection);

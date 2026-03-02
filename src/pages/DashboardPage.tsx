@@ -232,8 +232,7 @@ export default function DashboardPage() {
         <div className="px-3 pb-2 space-y-0.5">
           <button
             onClick={() => {
-              const isSettingsGroup = tab === "settings" || tab === "setup" || tab === "integrations";
-              if (isSettingsGroup) {
+              if (tab === "settings") {
                 setSettingsOpen((o) => !o);
               } else {
                 setTab("settings");
