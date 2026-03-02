@@ -379,16 +379,51 @@ function normalizeInsightPayload(raw: Record<string, unknown> | null, messages: 
   };
 }
 
-function forceFinalTranscript(rawText: string, messages: Array<{ role: string; content: string }>): { text: string; insight: InsightPayload } {
-  const insight = normalizeInsightPayload(parseInsight(rawText), messages);
-  const visibleRaw = rawText
+function buildRetentionCloseMessage(insight: InsightPayload): string {
+  const path = insight.retention_path;
+  if (path === "pause") {
+    return "Before we close this out, we can pause your auto-renewal so you keep your setup and can come back anytime.";
+  }
+  if (path === "downgrade") {
+    return "Before we close this out, we can move you to a lower plan so your cost drops while you keep access.";
+  }
+  if (path === "fix_and_followup") {
+    return "Before we close this out, we'll open a priority ticket for this issue and follow up with you directly on progress.";
+  }
+  if (path === "concierge_onboarding") {
+    return "Before we close this out, we can run a concierge onboarding session so your team gets value faster.";
+  }
+  return "Thanks for sharing this with us — we appreciate the context and will use it to improve.";
+}
+
+function stripControlBlocks(text: string): string {
+  return text
     .replace(/\[INSIGHTS\][\s\S]*?\[\/INSIGHTS\]/g, "")
     .replace(/\[INTERVIEW_COMPLETE\]/g, "")
     .trim();
+}
 
-  const visible = visibleRaw.includes("?")
-    ? "Thanks for sharing this with us — we appreciate the context and will use it to improve."
-    : (visibleRaw || "Thanks for sharing this with us — we appreciate the context and will use it to improve.");
+function looksLikeCloseWithoutCompletion(text: string): boolean {
+  const visible = stripControlBlocks(text);
+  if (!visible) return false;
+  if (visible.includes("?")) return false;
+  const lower = visible.toLowerCase();
+  const closeSignals = [
+    "thanks for sharing",
+    "we appreciate",
+    "we totally get it",
+    "we get it",
+    "good luck",
+    "wish you",
+    "sounds like this is a blocker",
+    "we understand",
+  ];
+  return closeSignals.some((signal) => lower.includes(signal));
+}
+
+function forceFinalTranscript(rawText: string, messages: Array<{ role: string; content: string }>): { text: string; insight: InsightPayload } {
+  const insight = normalizeInsightPayload(parseInsight(rawText), messages);
+  const visible = buildRetentionCloseMessage(insight);
 
   const text =
     `${visible}\n\n` +
@@ -820,6 +855,85 @@ serve(async (req) => {
       return new Response(textToAnthropicSSE(finalText), {
         headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
       });
+    }
+
+    // After minimum turns, switch to non-streaming so we can enforce deterministic closing behavior.
+    if (userTurns >= config.min_exchanges) {
+      const inspectResponse = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "x-api-key": ANTHROPIC_API_KEY,
+          "anthropic-version": "2023-06-01",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "claude-haiku-4-5-20251001",
+          max_tokens: 1024,
+          system: systemPrompt,
+          messages,
+          stream: false,
+        }),
+      });
+
+      if (!inspectResponse.ok) {
+        const t = await inspectResponse.text();
+        console.error("AI gateway error (non-stream branch):", inspectResponse.status, t);
+        if (inspectResponse.status === 429 || inspectResponse.status === 402) {
+          const GEMINI_API_KEY = Deno.env.get("VITE_GEMINI_API_KEY");
+          if (GEMINI_API_KEY) {
+            try {
+              const geminiText = await geminiNonStreaming(systemPrompt, messages, 1024, GEMINI_API_KEY);
+              const shouldCompleteGeminiNow =
+                geminiText.includes("[INTERVIEW_COMPLETE]") || looksLikeCloseWithoutCompletion(geminiText);
+              if (shouldCompleteGeminiNow) {
+                const { text: finalText, insight } = forceFinalTranscript(geminiText, messages);
+                const savedId = await saveInsight(supabase, accountId, insight, messages, userContext, insightId);
+                void deliverRealtimeNotifications(supabase, accountId, savedId, insight).catch((e) => {
+                  console.error("Notification dispatch error:", e);
+                });
+                const responseHeaders: Record<string, string> = { ...corsHeaders, "Content-Type": "text/event-stream" };
+                if (savedId) responseHeaders["x-insight-id"] = savedId;
+                return new Response(textToAnthropicSSE(finalText), { headers: responseHeaders });
+              }
+              const responseHeaders: Record<string, string> = { ...corsHeaders, "Content-Type": "text/event-stream" };
+              if (insightId) responseHeaders["x-insight-id"] = insightId;
+              return new Response(textToAnthropicSSE(geminiText), { headers: responseHeaders });
+            } catch (geminiErr) {
+              console.error("Gemini fallback failed (non-stream branch):", geminiErr);
+            }
+          }
+        }
+        return new Response(JSON.stringify({ error: "AI gateway error" }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const inspectJson = await inspectResponse.json();
+      const generatedText = Array.isArray(inspectJson?.content)
+        ? inspectJson.content
+            .filter((c: Record<string, unknown>) => c?.type === "text")
+            .map((c: Record<string, unknown>) => String(c?.text ?? ""))
+            .join("")
+        : "";
+
+      const shouldCompleteNow =
+        generatedText.includes("[INTERVIEW_COMPLETE]") || looksLikeCloseWithoutCompletion(generatedText);
+
+      if (shouldCompleteNow) {
+        const { text: finalText, insight } = forceFinalTranscript(generatedText, messages);
+        const savedId = await saveInsight(supabase, accountId, insight, messages, userContext, insightId);
+        void deliverRealtimeNotifications(supabase, accountId, savedId, insight).catch((e) => {
+          console.error("Notification dispatch error:", e);
+        });
+        const responseHeaders: Record<string, string> = { ...corsHeaders, "Content-Type": "text/event-stream" };
+        if (savedId) responseHeaders["x-insight-id"] = savedId;
+        return new Response(textToAnthropicSSE(finalText), { headers: responseHeaders });
+      }
+
+      const responseHeaders: Record<string, string> = { ...corsHeaders, "Content-Type": "text/event-stream" };
+      if (insightId) responseHeaders["x-insight-id"] = insightId;
+      return new Response(textToAnthropicSSE(generatedText), { headers: responseHeaders });
     }
 
     const aiResponse = await fetch("https://api.anthropic.com/v1/messages", {
