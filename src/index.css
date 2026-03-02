@@ -48,9 +48,9 @@
     --amber: 38 92% 50%;
     --amber-light: 45 93% 95%;
     --amber-foreground: 28 73% 26%;
-    --purple-accent: 262 52% 47%;
-    --purple-light: 262 80% 96%;
-    --purple-foreground: 262 47% 30%;
+    --purple-accent: 248 90% 69%;
+    --purple-light: 248 80% 96%;
+    --purple-foreground: 248 47% 30%;
     --red-accent: 0 72% 55%;
     --red-light: 0 86% 96%;
     --red-foreground: 0 60% 32%;
@@ -77,33 +77,35 @@
   }
 
   .dark {
-    --background: 222 30% 6%;
-    --foreground: 210 40% 96%;
-    --card: 222 25% 10%;
-    --card-foreground: 210 40% 96%;
-    --popover: 222 25% 10%;
-    --popover-foreground: 210 40% 96%;
-    --primary: 210 40% 96%;
-    --primary-foreground: 222 30% 8%;
-    --secondary: 217 25% 16%;
-    --secondary-foreground: 210 40% 96%;
-    --muted: 217 25% 16%;
-    --muted-foreground: 215 18% 60%;
-    --accent: 152 55% 48%;
-    --accent-foreground: 0 0% 100%;
-    --destructive: 0 62.8% 30.6%;
+    /* Landing page palette — #0d0d0f bg, #7c6af7 accent */
+    --background: 240 7% 5%;
+    --foreground: 240 20% 95%;
+    --card: 240 5% 8%;
+    --card-foreground: 240 20% 95%;
+    --popover: 240 5% 8%;
+    --popover-foreground: 240 20% 95%;
+    --primary: 248 90% 69%;
+    --primary-foreground: 240 7% 5%;
+    --secondary: 240 7% 11%;
+    --secondary-foreground: 240 20% 95%;
+    --muted: 240 10% 13%;
+    --muted-foreground: 240 8% 60%;
+    --accent: 248 90% 69%;
+    --accent-foreground: 240 7% 5%;
+    --destructive: 0 63% 40%;
     --destructive-foreground: 210 40% 98%;
-    --border: 217 25% 18%;
-    --input: 217 25% 18%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --border: 240 7% 18%;
+    --input: 240 7% 18%;
+    --ring: 248 90% 69%;
+    --gradient-header: linear-gradient(135deg, hsl(240 7% 8%), hsl(248 40% 15%));
+    --sidebar-background: 240 7% 5%;
+    --sidebar-foreground: 240 20% 95%;
+    --sidebar-primary: 248 90% 69%;
+    --sidebar-primary-foreground: 240 7% 5%;
+    --sidebar-accent: 240 7% 11%;
+    --sidebar-accent-foreground: 240 20% 95%;
+    --sidebar-border: 240 7% 18%;
+    --sidebar-ring: 248 90% 69%;
   }
 }
 
