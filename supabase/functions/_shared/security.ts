@@ -1,3 +1,9 @@
+export const securityHeaders: Record<string, string> = {
+  "X-Content-Type-Options": "nosniff",
+  "X-Frame-Options": "DENY",
+  "Referrer-Policy": "strict-origin-when-cross-origin",
+};
+
 export function getClientIp(req: Request): string {
   const cf = req.headers.get("cf-connecting-ip");
   if (cf) return cf.trim();

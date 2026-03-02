@@ -30,7 +30,7 @@ export default function Widget() {
 
   useEffect(() => {
     function handleMessage(e: MessageEvent) {
-      if (e.data && e.data.type === "lastword:init") {
+      if (e.data && e.data.type === "lastword:init" && window !== window.parent) {
         if (trustedParentWindowRef.current && e.source !== trustedParentWindowRef.current) return;
         if (trustedParentOriginRef.current && e.origin !== trustedParentOriginRef.current) return;
         if (typeof e.data.parentOrigin === "string" && e.data.parentOrigin !== e.origin) return;
@@ -67,8 +67,8 @@ export default function Widget() {
   }, [apiKey]);
 
   function handleInsight(insight: Insight) {
-    const targetOrigin = trustedParentOrigin ?? "*";
-    window.parent.postMessage({ type: "lastword:complete", insight }, targetOrigin);
+    if (!trustedParentOrigin) return;
+    window.parent.postMessage({ type: "lastword:complete", insight }, trustedParentOrigin);
   }
 
   if (!widgetInitialized) {

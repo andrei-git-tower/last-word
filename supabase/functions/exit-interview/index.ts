@@ -5,6 +5,7 @@ import {
   checkSoftRateLimit,
   getClientIp,
   sanitizePromptText,
+  securityHeaders,
   validateWebhookTargetUrl,
 } from "../_shared/security.ts";
 
@@ -13,6 +14,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type, x-api-key",
   "Access-Control-Expose-Headers": "x-insight-id",
+  ...securityHeaders,
 };
 
 // --- Types ---
@@ -121,13 +123,18 @@ function buildUserContextBlock(ctx: UserContext | null | undefined): string {
   return lines.join("\n");
 }
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 function sanitizeUserContext(ctx: UserContext | null): UserContext | null {
   if (!ctx) return null;
   const accountAge = Number(ctx.account_age);
   const seats = Number(ctx.seats);
   const mrr = Number(ctx.mrr);
+  const rawEmail = sanitizePromptText(ctx.email, 200) || undefined;
+  // Silently drop malformed emails rather than rejecting the whole request
+  const email = rawEmail && EMAIL_REGEX.test(rawEmail) ? rawEmail : undefined;
   return {
-    email: sanitizePromptText(ctx.email, 200) || undefined,
+    email,
     plan: sanitizePromptText(ctx.plan, 100) || undefined,
     account_age: Number.isFinite(accountAge) ? Math.max(0, Math.floor(accountAge)) : undefined,
     seats: Number.isFinite(seats) ? Math.max(0, Math.floor(seats)) : undefined,
@@ -1510,7 +1517,7 @@ serve(async (req) => {
   } catch (e) {
     console.error("exit-interview error:", e);
     return new Response(
-      JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
+      JSON.stringify({ error: "Internal server error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

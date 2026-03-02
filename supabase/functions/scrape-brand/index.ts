@@ -1,11 +1,12 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { checkSoftRateLimit, getClientIp } from "../_shared/security.ts";
+import { checkSoftRateLimit, getClientIp, securityHeaders } from "../_shared/security.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type, x-api-key",
+  ...securityHeaders,
 };
 
 serve(async (req) => {
@@ -81,6 +82,21 @@ serve(async (req) => {
       });
     }
 
+    // Reject path traversal, localhost, and private IP patterns
+    const domainHost = normalizedDomain.split("/")[0].split(":")[0].toLowerCase();
+    const privateHostPattern = /^(localhost|.*\.local|.*\.internal|metadata\.google\.internal)$/;
+    const privateIpPattern = /^(10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.|127\.|169\.254\.|::1|fe80:|fc|fd)/;
+    if (
+      normalizedDomain.includes("..") ||
+      privateHostPattern.test(domainHost) ||
+      privateIpPattern.test(domainHost)
+    ) {
+      return new Response(JSON.stringify({ error: "Invalid domain" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const fullUrl = `https://${normalizedDomain}`;
     const SCRAPER_API_KEY = Deno.env.get("SCRAPER_API_KEY");
     if (!SCRAPER_API_KEY) {
@@ -114,7 +130,8 @@ serve(async (req) => {
     ]);
 
     if (textResult.status === "rejected") {
-      return new Response(JSON.stringify({ error: "Failed to scrape text", detail: String(textResult.reason) }), {
+      console.error("[scrape-brand] Scraper text failed:", textResult.reason);
+      return new Response(JSON.stringify({ error: "Failed to scrape text" }), {
         status: 502,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -127,8 +144,9 @@ serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
+    console.error("[scrape-brand] Unhandled error:", e);
     return new Response(
-      JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
+      JSON.stringify({ error: "Internal server error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

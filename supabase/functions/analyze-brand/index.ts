@@ -1,12 +1,13 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { geminiNonStreaming } from "../_shared/gemini.ts";
-import { checkSoftRateLimit, getClientIp, sanitizePromptText } from "../_shared/security.ts";
+import { checkSoftRateLimit, getClientIp, sanitizePromptText, securityHeaders } from "../_shared/security.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type, x-api-key",
+  ...securityHeaders,
 };
 
 const BRAND_ANALYSIS_PROMPT = `You are an expert brand strategist and copywriter. I will provide you with scraped content from a company's website.
@@ -127,7 +128,7 @@ serve(async (req) => {
 
       const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
       if (!GEMINI_API_KEY) {
-        return new Response(JSON.stringify({ error: "AI call failed", detail: errText }), {
+        return new Response(JSON.stringify({ error: "AI call failed" }), {
           status: 500,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
@@ -168,7 +169,7 @@ serve(async (req) => {
 
     if (updateError) {
       console.error("[analyze-brand] Failed to save brand_prompt:", updateError);
-      return new Response(JSON.stringify({ error: "Failed to save brand prompt", detail: updateError.message }), {
+      return new Response(JSON.stringify({ error: "Failed to save brand prompt" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -180,7 +181,7 @@ serve(async (req) => {
   } catch (e) {
     console.error("analyze-brand error:", e);
     return new Response(
-      JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
+      JSON.stringify({ error: "Internal server error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
