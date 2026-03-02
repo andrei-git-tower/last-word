@@ -52,19 +52,12 @@ const NAV_ITEMS = [
   },
 ] as const satisfies { id: Tab; label: string; icon: React.ReactNode }[];
 
-const SETTINGS_ICON = (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
-    <circle cx="12" cy="12" r="3" />
-  </svg>
-);
-
-const SETTINGS_SUB_ITEMS = [
+const BOTTOM_NAV_ITEMS = [
   {
     id: "setup" as Tab,
     label: "Setup",
     icon: (
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <polyline points="16 18 22 12 16 6" />
         <polyline points="8 6 2 12 8 18" />
       </svg>
@@ -74,12 +67,22 @@ const SETTINGS_SUB_ITEMS = [
     id: "integrations" as Tab,
     label: "Integrations",
     icon: (
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M8 9h8" />
         <path d="M8 15h8" />
         <path d="M3 9h.01" />
         <path d="M3 15h.01" />
         <path d="M12 3v18" />
+      </svg>
+    ),
+  },
+  {
+    id: "settings" as Tab,
+    label: "Settings",
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+        <circle cx="12" cy="12" r="3" />
       </svg>
     ),
   },
@@ -99,7 +102,6 @@ const PAGE_TITLES: Record<Tab, { title: string; description: string }> = {
 export default function DashboardPage() {
   const { user } = useAuth();
   const [tab, setTab] = useState<Tab>("interview");
-  const [settingsOpen, setSettingsOpen] = useState(false);
   const [testInsights, setTestInsights] = useState<Insight[]>([]);
   const handleTestInsight = useCallback((insight: Insight) => {
     setTestInsights((prev) => [...prev, insight]);
@@ -204,22 +206,17 @@ export default function DashboardPage() {
         <nav className="flex-1 px-3 py-4 space-y-0.5">
           {NAV_ITEMS.map((item) => {
             const active = tab === item.id;
-            const isSuper = item.id === "superinsights";
             return (
               <button
                 key={item.id}
                 onClick={() => setTab(item.id)}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all text-left ${
-                  isSuper
-                    ? active
-                      ? "bg-amber-400 text-amber-950"
-                      : "text-amber-500 hover:text-amber-600 hover:bg-amber-50"
-                    : active
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+                  active
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground hover:bg-secondary"
                 }`}
               >
-                <span className={isSuper ? (active ? "text-amber-950" : "text-amber-500") : active ? "text-primary-foreground" : "text-muted-foreground"}>
+                <span className={active ? "text-primary-foreground" : "text-muted-foreground"}>
                   {item.icon}
                 </span>
                 {item.label}
@@ -228,59 +225,27 @@ export default function DashboardPage() {
           })}
         </nav>
 
-        {/* Settings (bottom, above user) */}
+        {/* Config pages + superinsights */}
         <div className="px-3 pb-2 space-y-0.5">
-          <button
-            onClick={() => {
-              if (tab === "settings") {
-                setSettingsOpen((o) => !o);
-              } else {
-                setTab("settings");
-                setSettingsOpen(true);
-              }
-            }}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all text-left ${
-              tab === "settings" || tab === "setup" || tab === "integrations"
-                ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground hover:text-foreground hover:bg-secondary"
-            }`}
-          >
-            <span className={tab === "settings" || tab === "setup" || tab === "integrations" ? "text-primary-foreground" : "text-muted-foreground"}>
-              {SETTINGS_ICON}
-            </span>
-            <span className="flex-1">Settings</span>
-            <svg
-              width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-              className={`shrink-0 transition-transform ${settingsOpen ? "rotate-180" : ""}`}
-            >
-              <polyline points="6 9 12 15 18 9" />
-            </svg>
-          </button>
-
-          {settingsOpen && (
-            <div className="ml-4 space-y-0.5">
-              {SETTINGS_SUB_ITEMS.map((item) => {
-                const active = tab === item.id;
-                return (
-                  <button
-                    key={item.id}
-                    onClick={() => setTab(item.id)}
-                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-all text-left ${
-                      active
-                        ? "bg-secondary text-foreground"
-                        : "text-muted-foreground hover:text-foreground hover:bg-secondary"
-                    }`}
-                  >
-                    <span className={active ? "text-foreground" : "text-muted-foreground"}>
-                      {item.icon}
-                    </span>
-                    {item.label}
-                  </button>
-                );
-              })}
-            </div>
-          )}
-
+          {BOTTOM_NAV_ITEMS.map((item) => {
+            const active = tab === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={() => setTab(item.id)}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all text-left ${
+                  active
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+                }`}
+              >
+                <span className={active ? "text-primary-foreground" : "text-muted-foreground"}>
+                  {item.icon}
+                </span>
+                {item.label}
+              </button>
+            );
+          })}
           <button
             onClick={() => setTab("superinsights")}
             className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all text-left ${
