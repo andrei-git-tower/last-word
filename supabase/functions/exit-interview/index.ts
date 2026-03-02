@@ -153,9 +153,12 @@ function buildRetentionSection(paths: RetentionPathConfig): string {
       `FIX & FOLLOW UP\n- Trigger: specific bug, crash, or performance issue\n- Action: acknowledge the problem, say we'll create a ticket and follow up personally`
     );
   }
-  if (paths.early_access?.enabled) {
+  if (paths.early_access?.enabled !== false) {
+    const earlyAccessOffer =
+      paths.early_access?.offer?.trim() ||
+      "Offer early access/waitlist for the missing feature and promise proactive updates.";
     sections.push(
-      `EARLY ACCESS\n- Trigger: customer is leaving due to a clear missing feature/workflow gap\n- Offer: ${paths.early_access.offer}\n- Use this instead of offboarding when the departure reason is a specific feature we can plausibly ship`
+      `EARLY ACCESS\n- Trigger: customer is leaving due to a clear missing feature/workflow gap\n- Offer: ${earlyAccessOffer}\n- Use this instead of offboarding when the departure reason is a specific feature we can plausibly ship`
     );
   }
   if (paths.concierge_onboarding?.enabled) {
@@ -225,6 +228,10 @@ function buildSystemPrompt(config: AccountConfig, userTurns: number, userContext
     userTurns === 0
       ? `- Customer turns so far: ${userTurns}
 - Turn policy: ask the opening question only.`
+      : userTurns < min_exchanges
+      ? `- Customer turns so far: ${userTurns}
+- Turn policy: usually continue probing until enough signal.
+- However, if the best retention path is already clear with high confidence, you MAY wrap now.`
       : userTurns >= max_exchanges
       ? `- Customer turns so far: ${userTurns}
 - Turn policy: hard limit reached. Wrap up now in this message.
@@ -424,70 +431,6 @@ function applyHardSafetyOverrides(insight: InsightPayload, messages: Array<{ rol
     return next;
   }
 
-  const reliabilityBlocking = hasAny([
-    "crash",
-    "crashes",
-    "bug",
-    "broken",
-    "doesn't work",
-    "doesnt work",
-    "unusable",
-    "blocked",
-    "blocking",
-    "fails",
-    "error",
-    "slow",
-    "performance",
-    "lag",
-  ]);
-  if (reliabilityBlocking) {
-    next.retention_path = "fix_and_followup";
-    next.salvageable = true;
-    if (next.category === "other" || next.category === "product_fit") {
-      next.category = "reliability";
-    }
-    return next;
-  }
-
-  const lowAdoption = hasAny([
-    "team never adopted",
-    "never adopted",
-    "only 1 of",
-    "only 2 of",
-    "only 3 of",
-    "rest of the team",
-    "nobody used",
-    "no one used",
-    "didn't onboard",
-    "didnt onboard",
-    "no onboarding",
-    "proper onboarding",
-  ]);
-  if (lowAdoption) {
-    next.retention_path = "concierge_onboarding";
-    next.salvageable = true;
-    return next;
-  }
-
-  const featureGap = hasAny([
-    "missing feature",
-    "feature gap",
-    "if you had",
-    "if you add",
-    "if you added",
-    "waiting for",
-    "waitlist",
-    "doesn't support",
-    "doesnt support",
-    "lack of",
-  ]);
-  if (featureGap) {
-    next.retention_path = "early_access";
-    next.salvageable = true;
-    if (next.category === "other") next.category = "product_fit";
-    return next;
-  }
-
   return next;
 }
 
@@ -611,6 +554,104 @@ ${JSON.stringify(base)}`;
   }
 }
 
+interface CloseDecision {
+  retention_path: string;
+  confidence: number;
+  should_close_now: boolean;
+  answered_latest_user_question: boolean;
+}
+
+async function adjudicateCloseDecisionWithAI(
+  draftInsight: InsightPayload,
+  messages: Array<{ role: string; content: string }>,
+  assistantDraft: string,
+  userTurns: number,
+  maxExchanges: number,
+  anthropicApiKey: string
+): Promise<CloseDecision | null> {
+  const transcript = messages
+    .filter((m) => String(m.content ?? "").trim().toLowerCase() !== "start")
+    .map((m) => `${m.role.toUpperCase()}: ${String(m.content ?? "").trim()}`)
+    .join("\n");
+
+  const prompt = `You are a strict semantic adjudicator for cancellation interviews.
+Use meaning, not keyword matching.
+
+Output ONLY valid JSON:
+{
+  "retention_path": "pause|downgrade|fix_and_followup|early_access|concierge_onboarding|offboard_gracefully",
+  "confidence": 0.0,
+  "should_close_now": true|false,
+  "answered_latest_user_question": true|false
+}
+
+Decision rubric:
+- Close early when retention path is clear with high confidence; do not wait for turn limits.
+- If latest user message asks a direct question, ensure assistant draft answers it.
+- If latest user question is not answered, set answered_latest_user_question=false.
+- Prefer fix_and_followup for blocking reliability/bug issues.
+- Prefer concierge_onboarding for low team adoption/onboarding gaps.
+- Prefer early_access for specific missing-feature/workflow blockers where customer would reconsider if shipped.
+- Prefer downgrade for price/overkill/basic-usage mismatch; no price negotiation.
+- Use offboard_gracefully only for clearly unsalvageable exits.
+- At max turn (${maxExchanges}), should_close_now should almost always be true.
+
+User turns so far: ${userTurns}
+Latest assistant draft:
+${assistantDraft}
+
+Transcript:
+${transcript}
+
+Draft insight:
+${JSON.stringify(draftInsight)}`;
+
+  try {
+    const resp = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "x-api-key": anthropicApiKey,
+        "anthropic-version": "2023-06-01",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "claude-haiku-4-5-20251001",
+        max_tokens: 220,
+        messages: [{ role: "user", content: prompt }],
+        stream: false,
+      }),
+    });
+    if (!resp.ok) return null;
+
+    const json = await resp.json();
+    const text = Array.isArray(json?.content)
+      ? json.content
+          .filter((c: Record<string, unknown>) => c?.type === "text")
+          .map((c: Record<string, unknown>) => String(c?.text ?? ""))
+          .join("")
+      : "";
+    const maybeObject = extractFirstJsonObject(text);
+    if (!maybeObject) return null;
+
+    const parsed = JSON.parse(maybeObject) as Record<string, unknown>;
+    const allowedPaths = new Set(["pause", "downgrade", "fix_and_followup", "early_access", "concierge_onboarding", "offboard_gracefully"]);
+    const retentionPath = String(parsed.retention_path ?? "").trim();
+    const confidence = Number(parsed.confidence);
+    const shouldCloseNow = Boolean(parsed.should_close_now);
+    const answeredLatest = Boolean(parsed.answered_latest_user_question);
+
+    if (!allowedPaths.has(retentionPath)) return null;
+    return {
+      retention_path: retentionPath,
+      confidence: Number.isFinite(confidence) ? Math.max(0, Math.min(1, confidence)) : 0,
+      should_close_now: shouldCloseNow,
+      answered_latest_user_question: answeredLatest,
+    };
+  } catch {
+    return null;
+  }
+}
+
 function buildRetentionCloseMessage(insight: InsightPayload): string {
   const path = insight.retention_path;
   if (path === "pause") {
@@ -677,38 +718,49 @@ function latestUserAskedDirectQuestion(messages: Array<{ role: string; content: 
   return questionStarts.some((q) => lower.startsWith(q));
 }
 
-function inferConfidentPath(messages: Array<{ role: string; content: string }>, userContext?: UserContext | null): string | null {
-  const text = messages
-    .filter((m) => m.role === "user")
-    .map((m) => String(m.content ?? "").trim().toLowerCase())
-    .filter((t) => t && t !== "start")
-    .join(" \n ");
-  if (!text) return null;
+function buildAnswerBeforeClose(path: string | null): string {
+  switch (path) {
+    case "early_access":
+      return "Good question. Yes, this capability is on our roadmap, and we can add you to early access as soon as it's available.";
+    case "downgrade":
+      return "Good question. We can move you to the lower-tier option so your cost drops while you keep the basics.";
+    case "fix_and_followup":
+      return "Good question. Yes, we'll treat this as a priority issue and follow up directly with progress updates.";
+    case "concierge_onboarding":
+      return "Good question. Yes, we can run onboarding support right away to help your team adopt it.";
+    case "pause":
+      return "Good question. Yes, we can pause your renewal and keep your setup intact so you can resume later.";
+    default:
+      return "Good question. We'll answer that directly and make sure you have a clear next step.";
+  }
+}
 
-  const hasAny = (phrases: string[]) => phrases.some((p) => text.includes(p));
+function shouldRunCloseAdjudication(
+  generatedText: string,
+  userTurns: number,
+  minExchanges: number,
+  userAskedQuestion: boolean
+): boolean {
+  if (generatedText.includes("[INTERVIEW_COMPLETE]")) return false;
+  if (looksLikeCloseWithoutCompletion(generatedText)) return true;
+  if (userTurns < minExchanges) return true; // early-close gate relies on confidence
+  if (userAskedQuestion) return true; // ensure answer-before-close behavior
+  return false;
+}
 
-  if (hasAny(["company is shutting down", "out of business", "going out of business", "already switched permanently", "don't need this anymore", "no longer need"])) {
-    return "offboard_gracefully";
-  }
-  if (hasAny(["crash", "crashes", "bug", "broken", "unusable", "blocked", "blocking", "doesn't work", "doesnt work", "performance", "slow", "lag"])) {
-    return "fix_and_followup";
-  }
-  if (hasAny(["team never adopted", "never adopted", "only 1 of", "only 2 of", "only 3 of", "no onboarding", "didn't onboard", "didnt onboard", "proper onboarding"])) {
-    return "concierge_onboarding";
-  }
-  if (hasAny(["missing feature", "feature gap", "if you add", "if you added", "if you had", "waiting for", "waitlist", "doesn't support", "doesnt support"])) {
-    return "early_access";
-  }
-  if (hasAny(["budget cut", "budget cuts", "temporary", "pause", "come back next quarter", "come back in q", "freeze spend"])) {
-    return "pause";
-  }
-  if (hasAny(["too expensive", "price too high", "can't justify", "cant justify", "only use basic", "lower tier", "downgrade"])) {
-    return "downgrade";
-  }
-  if ((userContext?.seats ?? 0) >= 3 && hasAny(["not adopted", "team not using", "few people use"])) {
-    return "concierge_onboarding";
-  }
-  return null;
+function shouldCloseFromDecision(
+  decision: CloseDecision | null,
+  userTurns: number,
+  minExchanges: number,
+  maxExchanges: number,
+  userAskedQuestion: boolean
+): boolean {
+  if (!decision) return false;
+  if (userTurns >= maxExchanges) return true;
+  const threshold = userTurns < minExchanges ? 0.85 : 0.7;
+  const confident = decision.confidence >= threshold;
+  const questionGuardSatisfied = !userAskedQuestion || decision.answered_latest_user_question;
+  return Boolean(decision.should_close_now && confident && questionGuardSatisfied);
 }
 
 async function forceFinalTranscript(
@@ -725,10 +777,15 @@ async function forceFinalTranscript(
   const closeLine = buildRetentionCloseMessage(insight);
   const visibleModelText = stripControlBlocks(rawText);
   const userAskedQuestion = latestUserAskedDirectQuestion(messages);
-  const useFallbackAnswer = userAskedQuestion && (!visibleModelText || looksLikeCloseWithoutCompletion(visibleModelText));
+  const useFallbackAnswer = userAskedQuestion && (
+    Boolean(preferredPath) ||
+    !visibleModelText ||
+    looksLikeCloseWithoutCompletion(visibleModelText) ||
+    visibleModelText.includes("?")
+  );
   const answerPrefix = userAskedQuestion
     ? useFallbackAnswer
-      ? "Good question. Yes, this is something we're actively working on and we'll keep you updated.\n\n"
+      ? `${buildAnswerBeforeClose(preferredPath ?? insight.retention_path)}\n\n`
       : `${visibleModelText.replace(/\?+$/g, ".")}\n\n`
     : "";
 
@@ -1173,8 +1230,7 @@ serve(async (req) => {
         }
         try {
           const geminiText = await geminiNonStreaming(forcedPrompt, messages, 1024, GEMINI_API_KEY);
-          const inferredPath = inferConfidentPath(messages, userContext);
-          const { text: finalText, insight } = await forceFinalTranscript(geminiText, messages, ANTHROPIC_API_KEY, inferredPath);
+          const { text: finalText, insight } = await forceFinalTranscript(geminiText, messages, ANTHROPIC_API_KEY);
           await saveInsight(supabase, accountId, insight, messages, userContext, insightId);
           return new Response(textToAnthropicSSE(finalText), {
             headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
@@ -1196,8 +1252,7 @@ serve(async (req) => {
             .join("")
         : "";
 
-      const inferredPath = inferConfidentPath(messages, userContext);
-      const { text: finalText, insight } = await forceFinalTranscript(generatedText, messages, ANTHROPIC_API_KEY, inferredPath);
+      const { text: finalText, insight } = await forceFinalTranscript(generatedText, messages, ANTHROPIC_API_KEY);
       const savedId = await saveInsight(supabase, accountId, insight, messages, userContext, insightId);
       void deliverRealtimeNotifications(supabase, accountId, savedId, insight).catch((e) => {
         console.error("Notification dispatch error:", e);
@@ -1234,12 +1289,38 @@ serve(async (req) => {
           if (GEMINI_API_KEY) {
             try {
               const geminiText = await geminiNonStreaming(systemPrompt, messages, 1024, GEMINI_API_KEY);
-              const inferredPath = inferConfidentPath(messages, userContext);
-              const shouldForceCloseFromSignal = Boolean(inferredPath) && !latestUserAskedDirectQuestion(messages);
+              const userAskedQuestion = latestUserAskedDirectQuestion(messages);
+              const needsAdjudication = shouldRunCloseAdjudication(
+                geminiText,
+                userTurns,
+                config.min_exchanges,
+                userAskedQuestion
+              );
+              const decision = needsAdjudication
+                ? await adjudicateCloseDecisionWithAI(
+                    normalizeInsightPayload(parseInsight(geminiText), messages),
+                    messages,
+                    stripControlBlocks(geminiText),
+                    userTurns,
+                    config.max_exchanges,
+                    ANTHROPIC_API_KEY
+                  )
+                : null;
+              const aiWantsClose = shouldCloseFromDecision(
+                decision,
+                userTurns,
+                config.min_exchanges,
+                config.max_exchanges,
+                userAskedQuestion
+              );
+              const questionGuardSatisfied = !userAskedQuestion || Boolean(decision?.answered_latest_user_question || aiWantsClose);
               const shouldCompleteGeminiNow =
-                geminiText.includes("[INTERVIEW_COMPLETE]") || looksLikeCloseWithoutCompletion(geminiText) || shouldForceCloseFromSignal;
+                geminiText.includes("[INTERVIEW_COMPLETE]") ||
+                (looksLikeCloseWithoutCompletion(geminiText) && questionGuardSatisfied) ||
+                (aiWantsClose && questionGuardSatisfied);
               if (shouldCompleteGeminiNow) {
-                const { text: finalText, insight } = await forceFinalTranscript(geminiText, messages, ANTHROPIC_API_KEY, inferredPath);
+                const preferredPath = decision?.retention_path ?? null;
+                const { text: finalText, insight } = await forceFinalTranscript(geminiText, messages, ANTHROPIC_API_KEY, preferredPath);
                 const savedId = await saveInsight(supabase, accountId, insight, messages, userContext, insightId);
                 void deliverRealtimeNotifications(supabase, accountId, savedId, insight).catch((e) => {
                   console.error("Notification dispatch error:", e);
@@ -1270,13 +1351,39 @@ serve(async (req) => {
             .join("")
         : "";
 
-      const inferredPath = inferConfidentPath(messages, userContext);
-      const shouldForceCloseFromSignal = Boolean(inferredPath) && !latestUserAskedDirectQuestion(messages);
+      const userAskedQuestion = latestUserAskedDirectQuestion(messages);
+      const needsAdjudication = shouldRunCloseAdjudication(
+        generatedText,
+        userTurns,
+        config.min_exchanges,
+        userAskedQuestion
+      );
+      const decision = needsAdjudication
+        ? await adjudicateCloseDecisionWithAI(
+            normalizeInsightPayload(parseInsight(generatedText), messages),
+            messages,
+            stripControlBlocks(generatedText),
+            userTurns,
+            config.max_exchanges,
+            ANTHROPIC_API_KEY
+          )
+        : null;
+      const aiWantsClose = shouldCloseFromDecision(
+        decision,
+        userTurns,
+        config.min_exchanges,
+        config.max_exchanges,
+        userAskedQuestion
+      );
+      const questionGuardSatisfied = !userAskedQuestion || Boolean(decision?.answered_latest_user_question || aiWantsClose);
       const shouldCompleteNow =
-        generatedText.includes("[INTERVIEW_COMPLETE]") || looksLikeCloseWithoutCompletion(generatedText) || shouldForceCloseFromSignal;
+        generatedText.includes("[INTERVIEW_COMPLETE]") ||
+        (looksLikeCloseWithoutCompletion(generatedText) && questionGuardSatisfied) ||
+        (aiWantsClose && questionGuardSatisfied);
 
       if (shouldCompleteNow) {
-        const { text: finalText, insight } = await forceFinalTranscript(generatedText, messages, ANTHROPIC_API_KEY, inferredPath);
+        const preferredPath = decision?.retention_path ?? null;
+        const { text: finalText, insight } = await forceFinalTranscript(generatedText, messages, ANTHROPIC_API_KEY, preferredPath);
         const savedId = await saveInsight(supabase, accountId, insight, messages, userContext, insightId);
         void deliverRealtimeNotifications(supabase, accountId, savedId, insight).catch((e) => {
           console.error("Notification dispatch error:", e);
