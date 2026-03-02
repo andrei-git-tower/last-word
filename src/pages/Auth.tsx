@@ -22,7 +22,11 @@ export default function Auth() {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) toast.error(error.message);
     } else {
-      const { error } = await supabase.auth.signUp({ email, password });
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { emailRedirectTo: `${window.location.origin}/onboarding` },
+      });
       if (error) toast.error(error.message);
       else toast.success("Account created — check your email to confirm.");
     }

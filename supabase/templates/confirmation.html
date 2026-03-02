@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Confirm your Last Word account</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background-color: #0d0d0f;
+      color: #f0f0f5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .wrapper {
+      max-width: 560px;
+      margin: 0 auto;
+      padding: 48px 24px;
+    }
+
+    /* Header */
+    .header {
+      margin-bottom: 40px;
+    }
+
+    .logo {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .logo-text {
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      color: #f0f0f5;
+    }
+
+    .logo-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background-color: #7c6af7;
+      display: inline-block;
+      margin-left: 1px;
+    }
+
+    /* Card */
+    .card {
+      background-color: #141416;
+      border: 1px solid #2a2a30;
+      border-radius: 16px;
+      padding: 40px;
+    }
+
+    /* Badge */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background-color: rgba(124, 106, 247, 0.12);
+      border: 1px solid rgba(124, 106, 247, 0.25);
+      border-radius: 100px;
+      padding: 4px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      color: #a89ef9;
+      text-transform: uppercase;
+      margin-bottom: 24px;
+    }
+
+    .badge-dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background-color: #7c6af7;
+    }
+
+    /* Heading */
+    .heading {
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      color: #f0f0f5;
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+
+    .heading span {
+      color: #7c6af7;
+    }
+
+    /* Body */
+    .body-text {
+      font-size: 15px;
+      line-height: 1.65;
+      color: #9090a0;
+      margin-bottom: 32px;
+    }
+
+    /* CTA Button */
+    .cta-wrapper {
+      margin-bottom: 32px;
+    }
+
+    .cta-button {
+      display: inline-block;
+      background-color: #7c6af7;
+      color: #ffffff;
+      font-size: 15px;
+      font-weight: 600;
+      text-decoration: none;
+      padding: 14px 28px;
+      border-radius: 10px;
+      letter-spacing: -0.01em;
+    }
+
+    /* Divider */
+    .divider {
+      border: none;
+      border-top: 1px solid #2a2a30;
+      margin: 32px 0;
+    }
+
+    /* What to expect */
+    .steps-heading {
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #5a5a6e;
+      margin-bottom: 16px;
+    }
+
+    .steps {
+      list-style: none;
+    }
+
+    .step {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .step-number {
+      width: 20px;
+      height: 20px;
+      min-width: 20px;
+      border-radius: 50%;
+      background-color: rgba(124, 106, 247, 0.15);
+      border: 1px solid rgba(124, 106, 247, 0.3);
+      font-size: 11px;
+      font-weight: 700;
+      color: #7c6af7;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 1px;
+    }
+
+    .step-text {
+      font-size: 14px;
+      line-height: 1.5;
+      color: #9090a0;
+    }
+
+    .step-text strong {
+      color: #c8c8d8;
+      font-weight: 600;
+    }
+
+    /* Fallback link */
+    .fallback {
+      margin-top: 28px;
+      padding: 16px;
+      background-color: #1a1a1e;
+      border-radius: 10px;
+    }
+
+    .fallback-label {
+      font-size: 12px;
+      color: #5a5a6e;
+      margin-bottom: 6px;
+    }
+
+    .fallback-url {
+      font-size: 12px;
+      color: #7c6af7;
+      word-break: break-all;
+      font-family: 'JetBrains Mono', 'Courier New', monospace;
+    }
+
+    /* Footer */
+    .footer {
+      margin-top: 32px;
+      text-align: center;
+    }
+
+    .footer-text {
+      font-size: 12px;
+      color: #5a5a6e;
+      line-height: 1.6;
+    }
+
+    .footer-text a {
+      color: #5a5a6e;
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+
+    <!-- Logo -->
+    <div class="header">
+      <div class="logo">
+        <span class="logo-text">Last Word</span>
+        <span class="logo-dot"></span>
+      </div>
+    </div>
+
+    <!-- Card -->
+    <div class="card">
+
+      <div class="badge">
+        <span class="badge-dot"></span>
+        One step to go
+      </div>
+
+      <h1 class="heading">
+        Confirm your email<br />to get <span>started</span>
+      </h1>
+
+      <p class="body-text">
+        You're almost in. Click below to confirm your email address and we'll take you straight to setup — it only takes a few minutes to get Last Word live on your product.
+      </p>
+
+      <div class="cta-wrapper">
+        <a href="{{ .ConfirmationURL }}" class="cta-button">Confirm my email →</a>
+      </div>
+
+      <hr class="divider" />
+
+      <p class="steps-heading">What happens next</p>
+
+      <ul class="steps">
+        <li class="step">
+          <span class="step-number">1</span>
+          <span class="step-text"><strong>Brand your widget</strong> — we'll pull your logo and colors automatically from your domain.</span>
+        </li>
+        <li class="step">
+          <span class="step-number">2</span>
+          <span class="step-text"><strong>Drop in the script tag</strong> — one line of code, works with any stack.</span>
+        </li>
+        <li class="step">
+          <span class="step-number">3</span>
+          <span class="step-text"><strong>Watch the interviews come in</strong> — real reasons, categorized, ready to act on.</span>
+        </li>
+      </ul>
+
+      <div class="fallback">
+        <p class="fallback-label">Link not working? Copy and paste this URL into your browser:</p>
+        <p class="fallback-url">{{ .ConfirmationURL }}</p>
+      </div>
+
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+      <p class="footer-text">
+        You received this because an account was created with this email address.<br />
+        If that wasn't you, you can safely ignore this email.
+      </p>
+    </div>
+
+  </div>
+</body>
+</html>
