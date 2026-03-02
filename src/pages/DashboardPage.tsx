@@ -10,6 +10,7 @@ import { BrandingPage } from "@/components/BrandingPage";
 import { RulesBuilder } from "@/components/RulesBuilder";
 import { IntegrationsPage } from "@/components/IntegrationsPage";
 import { toast } from "sonner";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import type { Insight } from "@/lib/constants";
 
 const APP_URL = import.meta.env.VITE_APP_URL ?? window.location.origin;
@@ -332,16 +333,19 @@ export default function DashboardPage() {
             <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
           </div>
 
-          {tab === "setup" && (insightsRows ?? []).length > 0 ? (
-            <div className="flex items-center gap-2 text-xs text-emerald-600 font-medium bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-full">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-              Integration active
-            </div>
-          ) : tab === "insights" ? (
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <span className="font-semibold text-foreground">{insights.length}</span> interviews
-            </div>
-          ) : null}
+          <div className="flex items-center gap-3">
+            {tab === "setup" && (insightsRows ?? []).length > 0 ? (
+              <div className="flex items-center gap-2 text-xs text-emerald-600 font-medium bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-full">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+                Integration active
+              </div>
+            ) : tab === "insights" ? (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <span className="font-semibold text-foreground">{insights.length}</span> interviews
+              </div>
+            ) : null}
+            <ThemeToggle />
+          </div>
         </header>
 
         {/* Content */}

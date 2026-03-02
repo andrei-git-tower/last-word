@@ -764,6 +764,10 @@
       align-items: flex-start;
       gap: 10px;
     }
+    .pricing-features li.nope::before {
+      content: '✗';
+      color: var(--red);
+    }
     .pricing-features li::before {
       content: '✓';
       color: var(--green);
@@ -892,7 +896,6 @@
           <a href="#pricing">Pricing</a>
           <a href="#">Docs</a>
         </div>
-        <a href="#" class="nav-cta">Get early access →</a>
       </div>
     </div>
   </nav>
@@ -913,7 +916,7 @@
             Last Word intercepts cancellations with a short AI conversation that surfaces the real reason — then offers a smart retention path. Not a discount. A solution.
           </p>
           <div class="hero-actions">
-            <a href="/auth" class="btn-primary">
+            <a href="/auth?mode=signup" class="btn-primary">
               Sign up now, it actually works
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </a>
@@ -1042,7 +1045,7 @@
   <section class="section" id="how-it-works" style="padding-top: 0;">
     <div class="container">
       <div class="section-label">How it works</div>
-      <h2>One script tag.<br>Real answers in days.</h2>
+      <h2>One script tag.<br>Real answers in minutes.</h2>
       <p class="section-sub">Drop it in your cancellation flow and Last Word handles the rest — from the conversation to the insight to the retention offer.</p>
 
       <div class="steps">
@@ -1268,39 +1271,39 @@
   <!-- TESTIMONIALS -->
   <section class="testimonials" style="padding-top: 0;">
     <div class="container">
-      <div class="section-label">Early feedback</div>
-      <h2>What founders are saying.</h2>
+      <div class="section-label">What other bootstrapped founders are saying</div>
+      <h2>Totally unbiased reviews.</h2>
       <div class="testi-grid">
         <div class="testi-card">
           <div class="stars">★★★★★</div>
-          <p class="testi-text">"Within the first week, Last Word surfaced something we hadn't seen in two years of cancellation surveys: <strong>half our churned users never invited a second teammate.</strong> That became our next sprint."</p>
+          <p class="testi-text">"I've built and sold companies worth hundreds of millions. I still had no idea why our SaaS customers were churning. Turns out <strong>nobody reads onboarding emails. Not one person. Ever.</strong> Last Word figured that out in a week."</p>
           <div class="testi-author">
-            <div class="testi-avatar">👨‍💻</div>
+            <div class="testi-avatar"><img src="https://saas.group/wp-content/uploads/TimSch.jpg.webp" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" /></div>
             <div>
-              <div class="testi-name">Marcus Chen</div>
-              <div class="testi-role">Co-founder, Flowbase</div>
+              <div class="testi-name">Tim Schumacher</div>
+              <div class="testi-role">Chairman and Co-Founder of Eyeo (AdBlock Plus), Co-Founder of Sedo.com. Internet and climate tech entrepreneur and investor.</div>
             </div>
           </div>
         </div>
         <div class="testi-card">
           <div class="stars">★★★★★</div>
-          <p class="testi-text">"The 'Fix & Follow Up' path alone has been worth it. We've saved <strong>11 customers this month</strong> by committing to specific bug fixes. No discount required."</p>
+          <p class="testi-text">"Our churn rate didn't go down but at least now I know exactly why. Turns out <strong>nobody actually wanted the feature I spent Q3 building.</strong> Incredible product, would not recommend to my therapist."</p>
           <div class="testi-author">
-            <div class="testi-avatar">👩‍💼</div>
+            <div class="testi-avatar"><img src="https://saas.group/wp-content/uploads/Tobi.jpg.webp" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" /></div>
             <div>
-              <div class="testi-name">Sarah Okafor</div>
-              <div class="testi-role">Head of Growth, Optic</div>
+              <div class="testi-name">Tobias Schlottke</div>
+              <div class="testi-role">Co-Founder of OMR.com, Co-Founder of alphalist, founder of metrigo (sold to Zalando) experienced CTO.</div>
             </div>
           </div>
         </div>
         <div class="testi-card">
           <div class="stars">★★★★★</div>
-          <p class="testi-text">"Setup literally took 15 minutes. I added the script tag, pasted our URL for branding, and the first interview came in the same day. <strong>The competitor tracking alone is gold.</strong>"</p>
+          <p class="testi-text">"First interview came in and the customer said they were switching to our competitor because it was 'just simpler.' I have <strong>47 features they don't have.</strong> I am not okay. The product works great though."</p>
           <div class="testi-author">
-            <div class="testi-avatar">🧑‍🚀</div>
+            <div class="testi-avatar"><img src="https://saas.group/wp-content/uploads/Ulrich.jpg" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" /></div>
             <div>
-              <div class="testi-name">Jamie Rivera</div>
-              <div class="testi-role">Founder, Patchwork</div>
+              <div class="testi-name">Ulrich Essmann</div>
+              <div class="testi-role">Co-Founder and former president of Sedo.com, active angel investor. Product enthusiast.</div>
             </div>
           </div>
         </div>
@@ -1312,54 +1315,55 @@
   <section class="pricing" id="pricing" style="padding-top: 0;">
     <div class="container">
       <div class="section-label">Pricing</div>
-      <h2>Simple pricing.<br>Scales with your churn.</h2>
-      <p class="section-sub" style="margin-bottom: 0;">Pay for the interviews you actually need. No seats, no per-user pricing.</p>
+      <h2>Simple pricing.<br>Doesn't even scale with your churn.</h2>
+      <p style="margin-bottom: 0; font-size: 16px; color: var(--text-muted); white-space: nowrap;">Pay for the interviews you actually need. No seats, no per-user pricing. Actually no pricing (for now).</p>
 
       <div class="pricing-grid">
         <div class="pricing-card">
           <div class="pricing-tier">Starter</div>
-          <div class="pricing-price"><sup>$</sup>49</div>
-          <div class="pricing-period">per month</div>
+          <div class="pricing-price"><sup>$</sup>0</div>
+          <div class="pricing-period">Did not had time to add Stripe implementation. Go crazy!</div>
           <ul class="pricing-features">
-            <li>Up to 50 interviews / month</li>
-            <li>All 5 retention paths</li>
-            <li>Dashboard & analytics</li>
-            <li>1 Slack notification channel</li>
-            <li>7-day conversation history</li>
+            <li>Some interviews / month, not too many</li>
+            <li>A few retention paths, the good ones</li>
+            <li>Dashboard & some charts or whatever</li>
+            <li class="nope">Slack thing, probably works</li>
+            <li>A week of history, maybe less</li>
+            <li>Enough to realise your onboarding is broken</li>
           </ul>
-          <a href="#" class="pricing-cta">Get started</a>
+          <a href="/auth?mode=signup" class="pricing-cta">Get started (it's free)</a>
         </div>
 
         <div class="pricing-card featured">
-          <div class="pricing-badge">Most popular</div>
+          <div class="pricing-badge">Most popular (with our mum)</div>
           <div class="pricing-tier">Growth</div>
-          <div class="pricing-price"><sup>$</sup>149</div>
-          <div class="pricing-period">per month</div>
+          <div class="pricing-price"><sup>$</sup>0</div>
+          <div class="pricing-period">Did not had time to add Stripe implementation. Go crazy!</div>
           <ul class="pricing-features">
-            <li>Up to 300 interviews / month</li>
-            <li>All 5 retention paths</li>
-            <li>Dashboard & analytics</li>
-            <li>Conditional rules engine</li>
-            <li>Webhooks & Slack</li>
-            <li>Competitor & feature gap tracking</li>
-            <li>30-day conversation history</li>
+            <li>Some more interviews / month, who knows</li>
+            <li>All the retention paths, we counted them</li>
+            <li>Dashboard with more numbers on it</li>
+            <li>Rules engine (it has conditions and stuff)</li>
+            <li>Webhooks & Slack & vibes</li>
+            <li>Competitor tracking, quite nosy honestly</li>
+            <li>30-day history to watch patterns repeat</li>
           </ul>
-          <a href="#" class="pricing-cta">Get started</a>
+          <a href="/auth?mode=signup" class="pricing-cta">Get started (still free)</a>
         </div>
 
         <div class="pricing-card">
           <div class="pricing-tier">Scale</div>
-          <div class="pricing-price"><sup>$</sup>399</div>
-          <div class="pricing-period">per month</div>
+          <div class="pricing-price"><sup>$</sup>0</div>
+          <div class="pricing-period">Did not had time to add Stripe implementation. Go crazy!</div>
           <ul class="pricing-features">
-            <li>Unlimited interviews</li>
-            <li>Everything in Growth</li>
-            <li>Custom AI prompt rules</li>
-            <li>Priority support</li>
-            <li>Unlimited history</li>
-            <li>Custom retention path copy</li>
+            <li>Interviews, as many as you want, go nuts</li>
+            <li>Everything from the other plans, obviously</li>
+            <li>Custom AI rules (you can make it weird)</li>
+            <li>Priority support (we will literally reply)</li>
+            <li>History forever, or until we run out of storage</li>
+            <li>Custom copy for your retention paths, very fancy</li>
           </ul>
-          <a href="#" class="pricing-cta">Get started</a>
+          <a href="/auth?mode=signup" class="pricing-cta">Get started (you get the idea)</a>
         </div>
       </div>
     </div>
