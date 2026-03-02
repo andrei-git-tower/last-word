@@ -4,7 +4,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 
-const SCRAPER_API_KEY = import.meta.env.VITE_SCRAPER_API_KEY as string;
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
 
 type Stage = "idle" | "scraping" | "analyzing" | "done" | "error";
@@ -309,7 +308,6 @@ export function BrandingPage({ apiKey }: { apiKey: string }) {
       return;
     }
 
-    const fullUrl = `https://${trimmed}`;
     setStage("scraping");
     setLogoStatus("searching");
     setColorStatus("searching");
@@ -318,33 +316,17 @@ export function BrandingPage({ apiKey }: { apiKey: string }) {
     setBrandColors({ primary: null, button: null, font: null });
     setBrandPrompt("");
 
-    const textParams = new URLSearchParams({
-      api_key: SCRAPER_API_KEY,
-      url: fullUrl,
-      premium: "true",
-      ultra_premium: "true",
-      output_format: "text",
+    const scrapeRes = await fetch(`${SUPABASE_URL}/functions/v1/scrape-brand`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        "x-api-key": apiKey,
+      },
+      body: JSON.stringify({ domain: trimmed }),
     });
 
-    const htmlParams = new URLSearchParams({
-      api_key: SCRAPER_API_KEY,
-      url: fullUrl,
-      premium: "true",
-      ultra_premium: "true",
-    });
-
-    const [textResult, htmlResult] = await Promise.allSettled([
-      fetch(`https://api.scraperapi.com/?${textParams.toString()}`).then(r => {
-        if (!r.ok) throw new Error(`Scraper text responded with ${r.status}`);
-        return r.text();
-      }),
-      fetch(`https://api.scraperapi.com/?${htmlParams.toString()}`).then(r => {
-        if (!r.ok) throw new Error(`Scraper HTML responded with ${r.status}`);
-        return r.text();
-      }),
-    ]);
-
-    if (textResult.status === "rejected") {
+    if (!scrapeRes.ok) {
       setStage("error");
       toast.error("Failed to scrape the domain. Please try again.");
       setLogoStatus("not_found");
@@ -352,12 +334,19 @@ export function BrandingPage({ apiKey }: { apiKey: string }) {
       return;
     }
 
-    const scraped = textResult.value;
+    const scrapeJson = await scrapeRes.json();
+    const scraped = String(scrapeJson.scraped_text ?? "");
+    const html = typeof scrapeJson.scraped_html === "string" ? scrapeJson.scraped_html : null;
+    if (!scraped) {
+      setStage("error");
+      toast.error("Failed to scrape the domain. Please try again.");
+      setLogoStatus("not_found");
+      setColorStatus("not_found");
+      return;
+    }
     setScrapedContent(scraped);
 
-    if (htmlResult.status === "fulfilled") {
-      const html = htmlResult.value;
-
+    if (html) {
       // Logo
       const logo = extractLogoUrl(html, trimmed);
       if (logo) { setLogoUrl(logo); setLogoStatus("found"); }

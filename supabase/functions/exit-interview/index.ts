@@ -1234,7 +1234,7 @@ serve(async (req) => {
         const t = await forcedResponse.text();
         console.error("AI gateway error (hard stop):", forcedResponse.status, t);
 
-        const GEMINI_API_KEY = Deno.env.get("VITE_GEMINI_API_KEY");
+        const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
         if (!GEMINI_API_KEY) {
           return new Response(JSON.stringify({ error: "AI gateway error" }), {
             status: 500,
@@ -1298,7 +1298,7 @@ serve(async (req) => {
         const t = await inspectResponse.text();
         console.error("AI gateway error (non-stream branch):", inspectResponse.status, t);
         if (inspectResponse.status === 429 || inspectResponse.status === 402) {
-          const GEMINI_API_KEY = Deno.env.get("VITE_GEMINI_API_KEY");
+          const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
           if (GEMINI_API_KEY) {
             try {
               const geminiText = await geminiNonStreaming(systemPrompt, messages, 1024, GEMINI_API_KEY);
@@ -1429,7 +1429,7 @@ serve(async (req) => {
 
     if (!aiResponse.ok) {
       if (aiResponse.status === 429 || aiResponse.status === 402) {
-        const GEMINI_API_KEY = Deno.env.get("VITE_GEMINI_API_KEY");
+        const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
         if (GEMINI_API_KEY) {
           console.log("exit-interview: Anthropic rate-limited, falling back to Gemini...");
           try {

@@ -125,7 +125,7 @@ serve(async (req) => {
       const errText = await aiResponse.text();
       console.error("[analyze-brand] Anthropic error:", aiResponse.status, errText);
 
-      const GEMINI_API_KEY = Deno.env.get("VITE_GEMINI_API_KEY");
+      const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
       if (!GEMINI_API_KEY) {
         return new Response(JSON.stringify({ error: "AI call failed", detail: errText }), {
           status: 500,
