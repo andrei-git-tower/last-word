@@ -246,21 +246,23 @@ export default function DashboardPage() {
               </button>
             );
           })}
-          <button
-            onClick={() => setTab("superinsights")}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all text-left ${
-              tab === "superinsights"
-                ? "bg-amber-400 text-amber-950"
-                : "text-amber-500 hover:text-amber-600 hover:bg-amber-50"
-            }`}
-          >
-            <span className={tab === "superinsights" ? "text-amber-950" : "text-amber-500"}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-              </svg>
-            </span>
-            SUPERINSIGHTS
-          </button>
+          {user?.email === "andrei@git-tower.com" && (
+            <button
+              onClick={() => setTab("superinsights")}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all text-left ${
+                tab === "superinsights"
+                  ? "bg-amber-400 text-amber-950"
+                  : "text-amber-500 hover:text-amber-600 hover:bg-amber-50"
+              }`}
+            >
+              <span className={tab === "superinsights" ? "text-amber-950" : "text-amber-500"}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                </svg>
+              </span>
+              SUPERINSIGHTS
+            </button>
+          )}
         </div>
 
         {/* User */}
