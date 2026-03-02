@@ -1,10 +1,15 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { geminiNonStreaming } from "../_shared/gemini.ts";
-import { checkSoftRateLimit, getClientIp, sanitizePromptText, securityHeaders } from "../_shared/security.ts";
+import { checkRateLimit, getClientIp, sanitizePromptText, securityHeaders } from "../_shared/security.ts";
+
+// Restrict to the configured dashboard origin when ALLOWED_ORIGIN is set.
+// Falls back to "*" if the env var is not configured (e.g. local dev).
+// Set ALLOWED_ORIGIN in Supabase function secrets for production.
+const allowedOrigin = Deno.env.get("ALLOWED_ORIGIN") ?? "*";
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Origin": allowedOrigin,
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type, x-api-key",
   ...securityHeaders,
@@ -66,7 +71,7 @@ serve(async (req) => {
 
     const accountId = account.id as string;
     const clientIp = getClientIp(req);
-    const accountRate = checkSoftRateLimit(`analyze-brand:acct:${accountId}`, 30, 60_000);
+    const accountRate = await checkRateLimit(`analyze-brand:acct:${accountId}`, 30, 60_000);
     if (!accountRate.allowed) {
       return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again shortly." }), {
         status: 429,
@@ -77,7 +82,7 @@ serve(async (req) => {
         },
       });
     }
-    const ipRate = checkSoftRateLimit(`analyze-brand:ip:${clientIp}`, 20, 60_000);
+    const ipRate = await checkRateLimit(`analyze-brand:ip:${clientIp}`, 20, 60_000);
     if (!ipRate.allowed) {
       return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again shortly." }), {
         status: 429,

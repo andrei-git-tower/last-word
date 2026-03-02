@@ -15,9 +15,11 @@ export function getClientIp(req: Request): string {
 }
 
 type RateEntry = { count: number; windowStartMs: number };
+
+// In-memory fallback used when Deno KV is unavailable.
 const rateStore = new Map<string, RateEntry>();
 
-export function checkSoftRateLimit(
+function inMemoryRateLimit(
   key: string,
   limit: number,
   windowMs: number
@@ -38,6 +40,69 @@ export function checkSoftRateLimit(
   current.count += 1;
   rateStore.set(key, current);
   return { allowed: true, retryAfterSec: 0 };
+}
+
+async function kvRateLimit(
+  key: string,
+  limit: number,
+  windowMs: number
+): Promise<{ allowed: boolean; retryAfterSec: number }> {
+  const kv = await Deno.openKv();
+  const kvKey = ["rl", key];
+  const now = Date.now();
+
+  // Retry up to 3 times to handle write conflicts under concurrent load.
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const entry = await kv.get<RateEntry>(kvKey);
+    const current = entry.value;
+
+    if (!current || now - current.windowStartMs >= windowMs) {
+      const res = await kv.atomic()
+        .check(entry)
+        .set(kvKey, { count: 1, windowStartMs: now }, { expireIn: windowMs })
+        .commit();
+      if (res.ok) return { allowed: true, retryAfterSec: 0 };
+      continue;
+    }
+
+    if (current.count >= limit) {
+      const retryMs = windowMs - (now - current.windowStartMs);
+      return { allowed: false, retryAfterSec: Math.max(1, Math.ceil(retryMs / 1000)) };
+    }
+
+    const res = await kv.atomic()
+      .check(entry)
+      .set(kvKey, { count: current.count + 1, windowStartMs: current.windowStartMs }, { expireIn: windowMs })
+      .commit();
+    if (res.ok) return { allowed: true, retryAfterSec: 0 };
+    // Version conflict — retry
+  }
+
+  // After retries, allow rather than incorrectly blocking (soft limit).
+  return { allowed: true, retryAfterSec: 0 };
+}
+
+// Distributed rate limiter backed by Deno KV (shared across function instances).
+// Falls back to in-memory if KV is unavailable (e.g. local dev without --unstable-kv).
+export async function checkRateLimit(
+  key: string,
+  limit: number,
+  windowMs: number
+): Promise<{ allowed: boolean; retryAfterSec: number }> {
+  try {
+    return await kvRateLimit(key, limit, windowMs);
+  } catch {
+    return inMemoryRateLimit(key, limit, windowMs);
+  }
+}
+
+// Kept for backwards compatibility — prefer checkRateLimit in new code.
+export function checkSoftRateLimit(
+  key: string,
+  limit: number,
+  windowMs: number
+): { allowed: boolean; retryAfterSec: number } {
+  return inMemoryRateLimit(key, limit, windowMs);
 }
 
 export function sanitizePromptText(input: unknown, maxLen: number): string {

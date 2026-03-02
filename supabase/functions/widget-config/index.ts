@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { checkSoftRateLimit, getClientIp, securityHeaders } from "../_shared/security.ts";
+import { checkRateLimit, getClientIp, securityHeaders } from "../_shared/security.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -42,7 +42,7 @@ serve(async (req) => {
 
     const accountId = account.id as string;
     const clientIp = getClientIp(req);
-    const accountRate = checkSoftRateLimit(`widget-config:acct:${accountId}`, 300, 60_000);
+    const accountRate = await checkRateLimit(`widget-config:acct:${accountId}`, 300, 60_000);
     if (!accountRate.allowed) {
       return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again shortly." }), {
         status: 429,
@@ -53,7 +53,7 @@ serve(async (req) => {
         },
       });
     }
-    const ipRate = checkSoftRateLimit(`widget-config:ip:${clientIp}`, 240, 60_000);
+    const ipRate = await checkRateLimit(`widget-config:ip:${clientIp}`, 240, 60_000);
     if (!ipRate.allowed) {
       return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again shortly." }), {
         status: 429,

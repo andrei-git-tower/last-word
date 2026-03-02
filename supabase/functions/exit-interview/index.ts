@@ -2,7 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { geminiNonStreaming } from "../_shared/gemini.ts";
 import {
-  checkSoftRateLimit,
+  checkRateLimit,
   getClientIp,
   sanitizePromptText,
   securityHeaders,
@@ -1129,7 +1129,7 @@ serve(async (req) => {
     const accountId = account.id as string;
     const clientIp = getClientIp(req);
 
-    const accountRate = checkSoftRateLimit(`exit:acct:${accountId}`, 240, 60_000);
+    const accountRate = await checkRateLimit(`exit:acct:${accountId}`, 240, 60_000);
     if (!accountRate.allowed) {
       return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again shortly." }), {
         status: 429,
@@ -1140,7 +1140,7 @@ serve(async (req) => {
         },
       });
     }
-    const ipRate = checkSoftRateLimit(`exit:ip:${clientIp}`, 180, 60_000);
+    const ipRate = await checkRateLimit(`exit:ip:${clientIp}`, 180, 60_000);
     if (!ipRate.allowed) {
       return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again shortly." }), {
         status: 429,
@@ -1160,7 +1160,42 @@ serve(async (req) => {
       .single();
 
     const body = await req.json();
+
+    // Validate messages array before any processing.
     const rawMessages = body.messages;
+    if (!Array.isArray(rawMessages)) {
+      return new Response(JSON.stringify({ error: "messages must be an array" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (rawMessages.length > 30) {
+      return new Response(JSON.stringify({ error: "Too many messages (max 30)" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    for (const m of rawMessages) {
+      if (!m || typeof m !== "object") {
+        return new Response(JSON.stringify({ error: "Each message must be an object" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (!["user", "assistant"].includes(m.role)) {
+        return new Response(JSON.stringify({ error: "Message role must be 'user' or 'assistant'" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (typeof m.content !== "string" || m.content.length > 4000) {
+        return new Response(JSON.stringify({ error: "Message content must be a string of max 4000 characters" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
     const userContext: UserContext | null = sanitizeUserContext(body.userContext ?? null);
     let insightId: string | null = body.insightId ?? null;
     const messages = rawMessages.length > 0 ? rawMessages : [{ role: "user", content: "start" }];

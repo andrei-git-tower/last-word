@@ -1,9 +1,13 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { checkSoftRateLimit, getClientIp, securityHeaders } from "../_shared/security.ts";
+import { checkRateLimit, getClientIp, securityHeaders } from "../_shared/security.ts";
+
+// Dashboard-only function — restrict to configured origin when ALLOWED_ORIGIN is set.
+// Same env var as analyze-brand. Falls back to "*" if not configured (e.g. local dev).
+const allowedOrigin = Deno.env.get("ALLOWED_ORIGIN") ?? "*";
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Origin": allowedOrigin,
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type, x-api-key",
   ...securityHeaders,
@@ -43,7 +47,7 @@ serve(async (req) => {
 
     const accountId = account.id as string;
     const clientIp = getClientIp(req);
-    const accountRate = checkSoftRateLimit(`scrape-brand:acct:${accountId}`, 20, 60_000);
+    const accountRate = await checkRateLimit(`scrape-brand:acct:${accountId}`, 20, 60_000);
     if (!accountRate.allowed) {
       return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again shortly." }), {
         status: 429,
@@ -54,7 +58,7 @@ serve(async (req) => {
         },
       });
     }
-    const ipRate = checkSoftRateLimit(`scrape-brand:ip:${clientIp}`, 15, 60_000);
+    const ipRate = await checkRateLimit(`scrape-brand:ip:${clientIp}`, 15, 60_000);
     if (!ipRate.allowed) {
       return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again shortly." }), {
         status: 429,
