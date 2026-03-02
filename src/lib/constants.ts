@@ -32,6 +32,7 @@ export const RETENTION_META: Record<string, { icon: string; label: string; color
   pause: { icon: "⏸️", label: "Pause Auto-Renewal", color: "bg-blue-accent-light text-blue-accent-foreground border-blue-accent", desc: "Pause renewal, keep access through current cycle" },
   downgrade: { icon: "📦", label: "Downgrade to Basic", color: "bg-amber-light text-amber-foreground border-amber", desc: "Lighter plan for basic usage" },
   fix_and_followup: { icon: "🔧", label: "Fix & Follow Up", color: "bg-orange-accent-light text-orange-accent-foreground border-orange-accent", desc: "Route to eng, promise follow-up" },
+  early_access: { icon: "🚀", label: "Early Access", color: "bg-violet-100 text-violet-800 border-violet-300", desc: "Missing feature: offer early-access/waitlist path" },
   concierge_onboarding: { icon: "🎓", label: "Concierge Onboarding", color: "bg-teal-accent-light text-teal-accent-foreground border-teal-accent", desc: "Free onboarding session for team" },
   offboard_gracefully: { icon: "👋", label: "Graceful Offboard", color: "bg-secondary text-muted-foreground border-border", desc: "Thank & let go — no save attempt" },
 };

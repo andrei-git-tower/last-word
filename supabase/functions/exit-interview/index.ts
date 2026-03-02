@@ -48,6 +48,7 @@ interface RetentionPathConfig {
   pause?: { enabled: boolean; offer: string };
   downgrade?: { enabled: boolean; offer: string };
   fix_and_followup?: { enabled: boolean };
+  early_access?: { enabled: boolean; offer: string };
   concierge_onboarding?: { enabled: boolean; offer: string };
   offboard_gracefully?: { enabled: boolean };
 }
@@ -152,6 +153,11 @@ function buildRetentionSection(paths: RetentionPathConfig): string {
       `FIX & FOLLOW UP\n- Trigger: specific bug, crash, or performance issue\n- Action: acknowledge the problem, say we'll create a ticket and follow up personally`
     );
   }
+  if (paths.early_access?.enabled) {
+    sections.push(
+      `EARLY ACCESS\n- Trigger: customer is leaving due to a clear missing feature/workflow gap\n- Offer: ${paths.early_access.offer}\n- Use this instead of offboarding when the departure reason is a specific feature we can plausibly ship`
+    );
+  }
   if (paths.concierge_onboarding?.enabled) {
     sections.push(
       `CONCIERGE ONBOARDING\n- Trigger: team never properly adopted the product (only a few people use it)\n- Offer: ${paths.concierge_onboarding.offer}\n- ONLY offer for multi-seat accounts`
@@ -216,17 +222,18 @@ function buildSystemPrompt(config: AccountConfig, userTurns: number, userContext
     plans.length > 0 ? plans.map((p) => `${p.name} (${p.price})`).join(", ") : "";
 
   const turnRules =
-    userTurns < min_exchanges
+    userTurns === 0
       ? `- Customer turns so far: ${userTurns}
-- Turn policy: keep probing. Do NOT wrap up yet and do NOT include [INTERVIEW_COMPLETE] yet.`
+- Turn policy: ask the opening question only.`
       : userTurns >= max_exchanges
       ? `- Customer turns so far: ${userTurns}
 - Turn policy: hard limit reached. Wrap up now in this message.
 - Do not ask a follow-up question.
 - Include [INTERVIEW_COMPLETE] and [INSIGHTS] now.`
       : `- Customer turns so far: ${userTurns}
-- Turn policy: you may continue probing OR wrap up if you already have enough signal.
-- If you choose to continue, ask exactly one follow-up question.`;
+- Turn policy: if you confidently identified the best retention path, wrap up NOW.
+- Do NOT ask extra questions just to fill turns.
+- If signal is still unclear, ask exactly one follow-up question.`;
 
   const brandVoiceSection = brand_prompt
     ? `You are an expert copywriter. Always follow these brand guidelines: ${brand_prompt}`
@@ -259,17 +266,20 @@ VOICE:
 
 FORMAT:
 - 1-2 short sentences per response, MAX. No exceptions.
-- Ask ONE follow-up question per turn
+- Ask at most ONE follow-up question when needed
 - Use reflective listening — briefly mirror what they said, then ask deeper
 - Good example: "Ah makes sense — was it the price itself or more that it didn't feel worth it for what you use?"
 
 FLOW:
-- Keep the conversation within ${min_exchanges}-${max_exchanges} customer turns, then wrap up
+- You MAY close as early as 1-2 customer replies if the reason and best retention path are already clear.
+- Do not delay closing to hit a turn target.
 - Go deeper on vague answers — "too expensive", "not using it", "found something better" always have a real story
 - For "too expensive": is it absolute price, value perception, budget change, team size, wrong tier?
 - For "better alternative": WHICH tool? WHAT specifically made them switch?
 - For "features": what specific workflow broke down?
 - For "technical issues": what broke, how often, how bad?
+- If the customer asks a direct question, answer it directly before closing.
+- Never negotiate custom pricing; for downgrade, present the configured downgrade option only.
 
 ## Turn Guardrails
 ${turnRules}
@@ -280,7 +290,7 @@ Based on what you learn, determine which path fits. NEVER offer a discount.
 ${buildRetentionSection(retention_paths)}
 
 ## Ending the Conversation
-After ${min_exchanges}-${max_exchanges} customer turns, wrap up naturally. End your final message with [INTERVIEW_COMPLETE].
+As soon as the best retention path is clear, wrap up naturally. End your final message with [INTERVIEW_COMPLETE].
 IMPORTANT: [INTERVIEW_COMPLETE] must ONLY appear in a message that contains no question. If your message ends with a question mark, do not include [INTERVIEW_COMPLETE] — ask your question first, wait for the answer, then wrap up.
 
 Then include a structured data block:
@@ -296,7 +306,7 @@ Then include a structured data block:
   "competitor": "name or null",
   "feature_gaps": ["specific features mentioned"],
   "usage_duration": "how long they used the product if mentioned",
-  "retention_path": "pause|downgrade|fix_and_followup|concierge_onboarding|offboard_gracefully",
+  "retention_path": "pause|downgrade|fix_and_followup|early_access|concierge_onboarding|offboard_gracefully",
   "retention_accepted": true|false
 }
 [/INSIGHTS]
@@ -414,6 +424,70 @@ function applyHardSafetyOverrides(insight: InsightPayload, messages: Array<{ rol
     return next;
   }
 
+  const reliabilityBlocking = hasAny([
+    "crash",
+    "crashes",
+    "bug",
+    "broken",
+    "doesn't work",
+    "doesnt work",
+    "unusable",
+    "blocked",
+    "blocking",
+    "fails",
+    "error",
+    "slow",
+    "performance",
+    "lag",
+  ]);
+  if (reliabilityBlocking) {
+    next.retention_path = "fix_and_followup";
+    next.salvageable = true;
+    if (next.category === "other" || next.category === "product_fit") {
+      next.category = "reliability";
+    }
+    return next;
+  }
+
+  const lowAdoption = hasAny([
+    "team never adopted",
+    "never adopted",
+    "only 1 of",
+    "only 2 of",
+    "only 3 of",
+    "rest of the team",
+    "nobody used",
+    "no one used",
+    "didn't onboard",
+    "didnt onboard",
+    "no onboarding",
+    "proper onboarding",
+  ]);
+  if (lowAdoption) {
+    next.retention_path = "concierge_onboarding";
+    next.salvageable = true;
+    return next;
+  }
+
+  const featureGap = hasAny([
+    "missing feature",
+    "feature gap",
+    "if you had",
+    "if you add",
+    "if you added",
+    "waiting for",
+    "waitlist",
+    "doesn't support",
+    "doesnt support",
+    "lack of",
+  ]);
+  if (featureGap) {
+    next.retention_path = "early_access";
+    next.salvageable = true;
+    if (next.category === "other") next.category = "product_fit";
+    return next;
+  }
+
   return next;
 }
 
@@ -447,7 +521,7 @@ function applyAdjudication(
   adjudicated: Record<string, unknown> | null,
   messages: Array<{ role: string; content: string }>
 ): InsightPayload {
-  const allowedPaths = new Set(["pause", "downgrade", "fix_and_followup", "concierge_onboarding", "offboard_gracefully"]);
+  const allowedPaths = new Set(["pause", "downgrade", "fix_and_followup", "early_access", "concierge_onboarding", "offboard_gracefully"]);
   const allowedCategories = new Set(["pricing", "product_fit", "competition", "support", "reliability", "lifecycle", "other"]);
 
   if (!adjudicated) return applyHardSafetyOverrides(base, messages);
@@ -476,7 +550,7 @@ async function adjudicateInsightWithAI(
   const prompt = `You are a strict retention-path adjudicator for cancellation interviews.
 Given the transcript and draft insight, output ONLY valid JSON with:
 {
-  "retention_path": "pause|downgrade|fix_and_followup|concierge_onboarding|offboard_gracefully",
+  "retention_path": "pause|downgrade|fix_and_followup|early_access|concierge_onboarding|offboard_gracefully",
   "salvageable": true|false,
   "category": "pricing|product_fit|competition|support|reliability|lifecycle|other",
   "reason": "one short sentence"
@@ -485,6 +559,8 @@ Given the transcript and draft insight, output ONLY valid JSON with:
 Rules:
 - Choose the best path based on semantic meaning of the transcript, not exact keywords.
 - If issue is reliability/performance/bug and support has no timeline, prefer fix_and_followup.
+- If the customer is leaving for a concrete missing feature/workflow gap, prefer early_access.
+- If team adoption is low or onboarding never landed, prefer concierge_onboarding.
 - If cancellation is temporary budget/project pause, prefer pause.
 - Use offboard_gracefully only when clearly unsalvageable (shutdown, permanent switch, no future need).
 - Output JSON only. No markdown.
@@ -546,6 +622,9 @@ function buildRetentionCloseMessage(insight: InsightPayload): string {
   if (path === "fix_and_followup") {
     return "We'll open a priority ticket for this issue and follow up with you directly on progress.";
   }
+  if (path === "early_access") {
+    return "We're actively building this and can add you to early access so you get it first.";
+  }
   if (path === "concierge_onboarding") {
     return "We can run a concierge onboarding session so your team gets value faster.";
   }
@@ -577,17 +656,84 @@ function looksLikeCloseWithoutCompletion(text: string): boolean {
   return closeSignals.some((signal) => lower.includes(signal));
 }
 
+function latestUserAskedDirectQuestion(messages: Array<{ role: string; content: string }>): boolean {
+  const latest = lastUserMessage(messages);
+  if (!latest) return false;
+  const lower = latest.toLowerCase();
+  if (latest.includes("?")) return true;
+  const questionStarts = [
+    "can you",
+    "could you",
+    "are you",
+    "is this",
+    "do you",
+    "will you",
+    "when",
+    "what",
+    "why",
+    "how",
+    "where",
+  ];
+  return questionStarts.some((q) => lower.startsWith(q));
+}
+
+function inferConfidentPath(messages: Array<{ role: string; content: string }>, userContext?: UserContext | null): string | null {
+  const text = messages
+    .filter((m) => m.role === "user")
+    .map((m) => String(m.content ?? "").trim().toLowerCase())
+    .filter((t) => t && t !== "start")
+    .join(" \n ");
+  if (!text) return null;
+
+  const hasAny = (phrases: string[]) => phrases.some((p) => text.includes(p));
+
+  if (hasAny(["company is shutting down", "out of business", "going out of business", "already switched permanently", "don't need this anymore", "no longer need"])) {
+    return "offboard_gracefully";
+  }
+  if (hasAny(["crash", "crashes", "bug", "broken", "unusable", "blocked", "blocking", "doesn't work", "doesnt work", "performance", "slow", "lag"])) {
+    return "fix_and_followup";
+  }
+  if (hasAny(["team never adopted", "never adopted", "only 1 of", "only 2 of", "only 3 of", "no onboarding", "didn't onboard", "didnt onboard", "proper onboarding"])) {
+    return "concierge_onboarding";
+  }
+  if (hasAny(["missing feature", "feature gap", "if you add", "if you added", "if you had", "waiting for", "waitlist", "doesn't support", "doesnt support"])) {
+    return "early_access";
+  }
+  if (hasAny(["budget cut", "budget cuts", "temporary", "pause", "come back next quarter", "come back in q", "freeze spend"])) {
+    return "pause";
+  }
+  if (hasAny(["too expensive", "price too high", "can't justify", "cant justify", "only use basic", "lower tier", "downgrade"])) {
+    return "downgrade";
+  }
+  if ((userContext?.seats ?? 0) >= 3 && hasAny(["not adopted", "team not using", "few people use"])) {
+    return "concierge_onboarding";
+  }
+  return null;
+}
+
 async function forceFinalTranscript(
   rawText: string,
   messages: Array<{ role: string; content: string }>,
-  anthropicApiKey: string
+  anthropicApiKey: string,
+  preferredPath?: string | null
 ): Promise<{ text: string; insight: InsightPayload }> {
   const normalized = normalizeInsightPayload(parseInsight(rawText), messages);
   const insight = await adjudicateInsightWithAI(normalized, messages, anthropicApiKey);
-  const visible = buildRetentionCloseMessage(insight);
+  if (preferredPath) {
+    insight.retention_path = preferredPath;
+  }
+  const closeLine = buildRetentionCloseMessage(insight);
+  const visibleModelText = stripControlBlocks(rawText);
+  const userAskedQuestion = latestUserAskedDirectQuestion(messages);
+  const useFallbackAnswer = userAskedQuestion && (!visibleModelText || looksLikeCloseWithoutCompletion(visibleModelText));
+  const answerPrefix = userAskedQuestion
+    ? useFallbackAnswer
+      ? "Good question. Yes, this is something we're actively working on and we'll keep you updated.\n\n"
+      : `${visibleModelText.replace(/\?+$/g, ".")}\n\n`
+    : "";
 
   const text =
-    `${visible}\n\n` +
+    `${answerPrefix}${closeLine}\n\n` +
     `[INTERVIEW_COMPLETE]\n\n` +
     `[INSIGHTS]\n${JSON.stringify(insight, null, 2)}\n[/INSIGHTS]`;
 
@@ -993,6 +1139,7 @@ serve(async (req) => {
 
 ## HARD STOP (SERVER ENFORCED)
 - Maximum customer replies reached.
+- If the customer's latest message asks a direct question, answer it clearly first.
 - Respond with a final wrap-up now.
 - Do not ask any question.
 - Include [INTERVIEW_COMPLETE] and [INSIGHTS] in this response.`;
@@ -1026,7 +1173,8 @@ serve(async (req) => {
         }
         try {
           const geminiText = await geminiNonStreaming(forcedPrompt, messages, 1024, GEMINI_API_KEY);
-          const { text: finalText, insight } = await forceFinalTranscript(geminiText, messages, ANTHROPIC_API_KEY);
+          const inferredPath = inferConfidentPath(messages, userContext);
+          const { text: finalText, insight } = await forceFinalTranscript(geminiText, messages, ANTHROPIC_API_KEY, inferredPath);
           await saveInsight(supabase, accountId, insight, messages, userContext, insightId);
           return new Response(textToAnthropicSSE(finalText), {
             headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
@@ -1048,7 +1196,8 @@ serve(async (req) => {
             .join("")
         : "";
 
-      const { text: finalText, insight } = await forceFinalTranscript(generatedText, messages, ANTHROPIC_API_KEY);
+      const inferredPath = inferConfidentPath(messages, userContext);
+      const { text: finalText, insight } = await forceFinalTranscript(generatedText, messages, ANTHROPIC_API_KEY, inferredPath);
       const savedId = await saveInsight(supabase, accountId, insight, messages, userContext, insightId);
       void deliverRealtimeNotifications(supabase, accountId, savedId, insight).catch((e) => {
         console.error("Notification dispatch error:", e);
@@ -1059,8 +1208,8 @@ serve(async (req) => {
       });
     }
 
-    // After minimum turns, switch to non-streaming so we can enforce deterministic closing behavior.
-    if (userTurns >= config.min_exchanges) {
+    // After the first real customer message, use non-streaming so we can enforce deterministic close behavior.
+    if (userTurns >= 1) {
       const inspectResponse = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
         headers: {
@@ -1085,10 +1234,12 @@ serve(async (req) => {
           if (GEMINI_API_KEY) {
             try {
               const geminiText = await geminiNonStreaming(systemPrompt, messages, 1024, GEMINI_API_KEY);
+              const inferredPath = inferConfidentPath(messages, userContext);
+              const shouldForceCloseFromSignal = Boolean(inferredPath) && !latestUserAskedDirectQuestion(messages);
               const shouldCompleteGeminiNow =
-                geminiText.includes("[INTERVIEW_COMPLETE]") || looksLikeCloseWithoutCompletion(geminiText);
+                geminiText.includes("[INTERVIEW_COMPLETE]") || looksLikeCloseWithoutCompletion(geminiText) || shouldForceCloseFromSignal;
               if (shouldCompleteGeminiNow) {
-                const { text: finalText, insight } = await forceFinalTranscript(geminiText, messages, ANTHROPIC_API_KEY);
+                const { text: finalText, insight } = await forceFinalTranscript(geminiText, messages, ANTHROPIC_API_KEY, inferredPath);
                 const savedId = await saveInsight(supabase, accountId, insight, messages, userContext, insightId);
                 void deliverRealtimeNotifications(supabase, accountId, savedId, insight).catch((e) => {
                   console.error("Notification dispatch error:", e);
@@ -1119,11 +1270,13 @@ serve(async (req) => {
             .join("")
         : "";
 
+      const inferredPath = inferConfidentPath(messages, userContext);
+      const shouldForceCloseFromSignal = Boolean(inferredPath) && !latestUserAskedDirectQuestion(messages);
       const shouldCompleteNow =
-        generatedText.includes("[INTERVIEW_COMPLETE]") || looksLikeCloseWithoutCompletion(generatedText);
+        generatedText.includes("[INTERVIEW_COMPLETE]") || looksLikeCloseWithoutCompletion(generatedText) || shouldForceCloseFromSignal;
 
       if (shouldCompleteNow) {
-        const { text: finalText, insight } = await forceFinalTranscript(generatedText, messages, ANTHROPIC_API_KEY);
+        const { text: finalText, insight } = await forceFinalTranscript(generatedText, messages, ANTHROPIC_API_KEY, inferredPath);
         const savedId = await saveInsight(supabase, accountId, insight, messages, userContext, insightId);
         void deliverRealtimeNotifications(supabase, accountId, savedId, insight).catch((e) => {
           console.error("Notification dispatch error:", e);
