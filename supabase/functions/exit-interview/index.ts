@@ -289,6 +289,7 @@ FLOW:
 - Never negotiate custom pricing; for downgrade, present the configured downgrade option only.
 - Never promise unreleased features, roadmap status, or delivery timelines.
 - If asked whether a feature is being built, be explicit that you cannot promise roadmap/timing in-chat, and offer early-access/waitlist updates when appropriate.
+- Keep this wording calm and helpful (not defensive). Prefer: "I can't promise timeline details in-chat, but I can add you to early-access updates."
 
 ## Turn Guardrails
 ${turnRules}
@@ -723,7 +724,7 @@ function latestUserAskedDirectQuestion(messages: Array<{ role: string; content: 
 function buildAnswerBeforeClose(path: string | null): string {
   switch (path) {
     case "early_access":
-      return "Good question. I can't promise roadmap timing in-chat, but we can add you to early-access updates for this capability.";
+      return "Good question. I can't promise timeline details in-chat, but we can add you to early-access updates for this capability.";
     case "downgrade":
       return "Good question. We can move you to the lower-tier option so your cost drops while you keep the basics.";
     case "fix_and_followup":
@@ -733,7 +734,7 @@ function buildAnswerBeforeClose(path: string | null): string {
     case "pause":
       return "Good question. Yes, we can pause your renewal and keep your setup intact so you can resume later.";
     default:
-      return "Good question. I can't promise roadmap timelines in-chat, but I'll give you a clear next step based on your cancellation reason.";
+      return "Good question. I can't promise timeline details in-chat, but I'll give you a clear next step based on your cancellation reason.";
   }
 }
 
@@ -772,7 +773,7 @@ function sanitizeAssistantOutput(text: string): string {
   if (text.includes("[INTERVIEW_COMPLETE]")) return text;
   const visible = stripControlBlocks(text);
   if (!PROMISE_CLAIM_RE.test(visible)) return text;
-  return "I can't promise roadmap timelines or unreleased features in-chat, but I can log this request and add you to early-access updates. Is this missing capability the main reason you're cancelling?";
+  return "I can't promise timeline details for unreleased features in-chat, but I can log this request and add you to early-access updates. Is this missing capability the main reason you're cancelling?";
 }
 
 async function forceFinalTranscript(
