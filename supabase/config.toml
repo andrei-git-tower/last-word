@@ -2,3 +2,9 @@ project_id = "tnokmcvlubpfijdedovj"
 
 [functions.exit-interview]
 verify_jwt = false
+
+[functions.analyze-brand]
+verify_jwt = false
+
+[functions.widget-config]
+verify_jwt = false
