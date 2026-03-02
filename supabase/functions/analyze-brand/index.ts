@@ -56,8 +56,6 @@ serve(async (req) => {
       .eq("api_key", apiKey)
       .single();
 
-    console.log("[analyze-brand] account lookup:", { found: !!account, error: accountError?.message });
-
     if (accountError || !account) {
       return new Response(JSON.stringify({ error: "Invalid API key" }), {
         status: 401,
@@ -99,8 +97,6 @@ serve(async (req) => {
     }
 
     const safeScrapedContent = sanitizePromptText(scraped_content, 25_000);
-    console.log("[analyze-brand] scraped_content length:", safeScrapedContent.length);
-
     const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
     if (!ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is not configured");
 
@@ -124,8 +120,6 @@ serve(async (req) => {
       }),
     });
 
-    console.log("[analyze-brand] Anthropic response status:", aiResponse.status);
-
     let brand_prompt: string;
     if (!aiResponse.ok) {
       const errText = await aiResponse.text();
@@ -139,7 +133,6 @@ serve(async (req) => {
         });
       }
 
-      console.log("[analyze-brand] Falling back to Gemini...");
       try {
         brand_prompt = (await geminiNonStreaming(
           "You are an expert brand strategist.",
@@ -160,8 +153,6 @@ serve(async (req) => {
     }
 
     brand_prompt = sanitizePromptText(brand_prompt, 1200);
-    console.log("[analyze-brand] brand_prompt generated, length:", brand_prompt.length);
-
     if (!brand_prompt) {
       return new Response(JSON.stringify({ error: "AI returned empty response" }), {
         status: 500,
@@ -174,8 +165,6 @@ serve(async (req) => {
       .from("configs")
       .update({ brand_prompt, updated_at: new Date().toISOString() })
       .eq("account_id", accountId);
-
-    console.log("[analyze-brand] configs update error:", updateError?.message ?? "none");
 
     if (updateError) {
       console.error("[analyze-brand] Failed to save brand_prompt:", updateError);

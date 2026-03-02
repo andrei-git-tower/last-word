@@ -111,8 +111,6 @@
     .danger-row .info span { font-size: 12px; color: #999; }
   </style>
 
-  <!-- LastWord widget -->
-  <script src="/widget.js" data-api-key="lw_5f63c2c3bb6c435fa8966c0c783dc306"></script>
 </head>
 <body>
 
@@ -137,7 +135,10 @@
       </div>
       <div class="field">
         <div><label>API Key</label></div>
-        <input type="text" value="lw_5f63c2c3bb6c435fa8966c0c783dc306" />
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <input type="text" id="field-api-key" value="" placeholder="lw_..." />
+          <button id="save-api-key-btn" style="border: 1px solid #ddd; background: #fff; border-radius: 8px; padding: 8px 10px; font-size: 12px; cursor: pointer;">Save</button>
+        </div>
       </div>
       <div class="field">
         <div><label>Email</label></div>
@@ -179,8 +180,52 @@
   </div>
 
   <script>
+    const API_KEY_STORAGE_KEY = "lastword_test_api_key";
+    let widgetLoaded = false;
+    const apiKeyInput = document.getElementById("field-api-key");
+    const saveApiKeyBtn = document.getElementById("save-api-key-btn");
+
+    function loadWidget(apiKey) {
+      if (widgetLoaded || !apiKey) return;
+      const script = document.createElement("script");
+      script.src = "/widget.js";
+      script.setAttribute("data-api-key", apiKey);
+      document.head.appendChild(script);
+      widgetLoaded = true;
+    }
+
+    function initApiKey() {
+      const saved = localStorage.getItem(API_KEY_STORAGE_KEY) || "";
+      apiKeyInput.value = saved;
+      if (saved) loadWidget(saved);
+    }
+
+    saveApiKeyBtn.addEventListener("click", () => {
+      const key = (apiKeyInput.value || "").trim();
+      if (!key) {
+        alert("Please enter your API key first.");
+        return;
+      }
+      localStorage.setItem(API_KEY_STORAGE_KEY, key);
+      loadWidget(key);
+      alert("API key saved for this browser.");
+    });
+
+    apiKeyInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        saveApiKeyBtn.click();
+      }
+    });
+
+    initApiKey();
+
     // LastWord — open retention flow on cancel
     document.getElementById('cancel-btn').addEventListener('click', () => {
+      if (!window.LastWord || typeof window.LastWord.open !== "function") {
+        alert("Please save a valid API key first.");
+        return;
+      }
       window.LastWord.open({
         email:       document.getElementById('field-email').value,
         plan:        document.getElementById('field-plan').value,
