@@ -38,33 +38,12 @@ export function InterviewChat({ onInsight, apiKey, autoStart = false, fullHeight
 
   const startInterview = useCallback(() => {
     setStarted(true);
-    setMessages([]);
+    setMessages([{ role: "assistant", content: FIRST_MESSAGE }]);
     setComplete(false);
     fullTextRef.current = "";
     insightIdRef.current = null;
-    setLoading(true);
-
-    let assistantSoFar = "";
-    streamChat({
-      messages: [],
-      apiKey,
-      userContext: userContextRef.current,
-      insightId: insightIdRef.current,
-      onInsightId: (id) => { insightIdRef.current = id; },
-      onDelta: (chunk) => {
-        assistantSoFar += chunk;
-        fullTextRef.current = assistantSoFar;
-        const cleaned = cleanMessage(assistantSoFar);
-        setMessages([{ role: "assistant", content: cleaned }]);
-      },
-      onDone: () => {
-        setLoading(false);
-      },
-    }).catch(() => {
-      setMessages([{ role: "assistant", content: FIRST_MESSAGE }]);
-      setLoading(false);
-    });
-  }, [apiKey]);
+    setLoading(false);
+  }, []);
 
   useEffect(() => {
     if (autoStart && !autoStarted.current) {
@@ -131,22 +110,15 @@ export function InterviewChat({ onInsight, apiKey, autoStart = false, fullHeight
       <div className="bg-card rounded-xl border border-border overflow-hidden">
         <div className="p-12 text-center">
           <div className="text-5xl mb-4">💬</div>
-          <h2 className="text-xl font-semibold text-foreground mb-2">Simulate a Tower Cancellation</h2>
+          <h2 className="text-xl font-semibold text-foreground mb-2">Test your exit interview</h2>
           <p className="text-muted-foreground mb-6 max-w-md mx-auto text-sm">
-            Play the role of a customer cancelling their Tower subscription. The AI will dig into the real reasons and offer a smart retention path — never a discount.
+            Preview the conversation your customers will see.
           </p>
-          <div className="flex flex-wrap gap-2 justify-center mb-6">
-            {["Solo dev, too pricey", "Switching to GitKraken", "Too many crashes", "Budget cuts", "Team never adopted it"].map((p) => (
-              <span key={p} className="text-xs bg-secondary text-muted-foreground px-3 py-1.5 rounded-full">
-                try: &ldquo;{p}&rdquo;
-              </span>
-            ))}
-          </div>
           <button
             onClick={startInterview}
             className="px-6 py-3 bg-primary text-primary-foreground rounded-lg font-medium hover:opacity-90 transition-opacity"
           >
-            Start Exit Interview
+            Start Test
           </button>
         </div>
       </div>
@@ -198,7 +170,7 @@ export function InterviewChat({ onInsight, apiKey, autoStart = false, fullHeight
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && send()}
-              placeholder="Respond as the cancelling customer..."
+              placeholder="Share your thoughts..."
               className="flex-1 border border-border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring bg-card text-foreground placeholder:text-muted-foreground"
               disabled={loading}
             />

@@ -76,30 +76,13 @@ export function TypeformChat({
     setComplete(false);
     setCurrentAnswer("");
     setStepCount(0);
-    setCurrentQuestion("");
+    setCurrentQuestion(FIRST_MESSAGE);
     fullTextRef.current = "";
     insightIdRef.current = null;
     setPhase("entering");
     setLoading(true);
-
-    let assistantSoFar = "";
-    streamChat({
-      messages: [],
-      apiKey,
-      userContext: userContextRef.current,
-      insightId: insightIdRef.current,
-      onInsightId: (id) => { insightIdRef.current = id; },
-      onDelta: (chunk) => {
-        assistantSoFar += chunk;
-        fullTextRef.current = assistantSoFar;
-      },
-      onDone: () => {
-        animateIn(cleanMessage(fullTextRef.current) || FIRST_MESSAGE);
-      },
-    }).catch(() => {
-      animateIn(FIRST_MESSAGE);
-    });
-  }, [apiKey]);
+    animateIn(FIRST_MESSAGE);
+  }, []);
 
   useEffect(() => {
     if (autoStart && !autoStarted.current) {

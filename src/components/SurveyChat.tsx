@@ -37,31 +37,11 @@ export function SurveyChat({ onInsight, apiKey, autoStart = false, primaryColor,
     setMessages([]);
     setComplete(false);
     setCurrentAnswer("");
-    setCurrentQuestion("");
+    setCurrentQuestion(FIRST_MESSAGE);
     fullTextRef.current = "";
     insightIdRef.current = null;
-    setLoading(true);
-
-    let assistantSoFar = "";
-    streamChat({
-      messages: [],
-      apiKey,
-      userContext: userContextRef.current,
-      insightId: insightIdRef.current,
-      onInsightId: (id) => { insightIdRef.current = id; },
-      onDelta: (chunk) => {
-        assistantSoFar += chunk;
-        fullTextRef.current = assistantSoFar;
-      },
-      onDone: () => {
-        setCurrentQuestion(cleanMessage(fullTextRef.current) || FIRST_MESSAGE);
-        setLoading(false);
-      },
-    }).catch(() => {
-      setCurrentQuestion(FIRST_MESSAGE);
-      setLoading(false);
-    });
-  }, [apiKey]);
+    setLoading(false);
+  }, []);
 
   useEffect(() => {
     if (autoStart && !autoStarted.current) {
