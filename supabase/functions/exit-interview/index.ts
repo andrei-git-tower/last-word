@@ -518,16 +518,16 @@ ${JSON.stringify(base)}`;
 function buildRetentionCloseMessage(insight: InsightPayload): string {
   const path = insight.retention_path;
   if (path === "pause") {
-    return "Before we close this out, we can pause your auto-renewal so you keep your setup and can come back anytime.";
+    return "We can pause your auto-renewal so you keep your setup and can come back anytime.";
   }
   if (path === "downgrade") {
-    return "Before we close this out, we can move you to a lower plan so your cost drops while you keep access.";
+    return "We can move you to a lower plan so your cost drops while you keep access.";
   }
   if (path === "fix_and_followup") {
-    return "Before we close this out, we'll open a priority ticket for this issue and follow up with you directly on progress.";
+    return "We'll open a priority ticket for this issue and follow up with you directly on progress.";
   }
   if (path === "concierge_onboarding") {
-    return "Before we close this out, we can run a concierge onboarding session so your team gets value faster.";
+    return "We can run a concierge onboarding session so your team gets value faster.";
   }
   return "Thanks for sharing this with us — we appreciate the context and will use it to improve.";
 }
