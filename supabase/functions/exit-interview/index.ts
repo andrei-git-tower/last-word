@@ -361,10 +361,46 @@ function buildFallbackInsight(messages: Array<{ role: string; content: string }>
   };
 }
 
+function applyHardSafetyOverrides(insight: InsightPayload, messages: Array<{ role: string; content: string }>): InsightPayload {
+  const userText = messages
+    .filter((m) => m.role === "user")
+    .map((m) => String(m.content ?? "").trim().toLowerCase())
+    .filter((t) => t && t !== "start")
+    .join(" \n ");
+
+  const hasAny = (phrases: string[]) => phrases.some((p) => userText.includes(p));
+
+  const explicitUnsalvageable = hasAny([
+    "company is shutting down",
+    "shutting down",
+    "out of business",
+    "going out of business",
+    "switching permanently",
+    "moved permanently",
+    "already switched",
+    "happy with",
+    "don't need this anymore",
+    "no longer need",
+    "canceling for good",
+    "cancelling for good",
+  ]);
+
+  const next: InsightPayload = { ...insight };
+
+  // Explicit unsalvageable outcomes always offboard.
+  if (explicitUnsalvageable) {
+    next.retention_path = "offboard_gracefully";
+    next.salvageable = false;
+    return next;
+  }
+
+  return next;
+}
+
 function normalizeInsightPayload(raw: Record<string, unknown> | null, messages: Array<{ role: string; content: string }>): InsightPayload {
   const fallback = buildFallbackInsight(messages);
-  if (!raw) return fallback;
-  return {
+  if (!raw) return applyHardSafetyOverrides(fallback, messages);
+  return applyHardSafetyOverrides({
     surface_reason: String(raw.surface_reason ?? fallback.surface_reason),
     deep_reasons: Array.isArray(raw.deep_reasons) ? (raw.deep_reasons as unknown[]).map((v) => String(v)) : fallback.deep_reasons,
     sentiment: String(raw.sentiment ?? fallback.sentiment),
@@ -376,7 +412,107 @@ function normalizeInsightPayload(raw: Record<string, unknown> | null, messages: 
     usage_duration: raw.usage_duration ? String(raw.usage_duration) : null,
     retention_path: String(raw.retention_path ?? fallback.retention_path),
     retention_accepted: Boolean(raw.retention_accepted),
-  };
+  }, messages);
+}
+
+function extractFirstJsonObject(text: string): string | null {
+  const start = text.indexOf("{");
+  const end = text.lastIndexOf("}");
+  if (start === -1 || end === -1 || end <= start) return null;
+  return text.slice(start, end + 1);
+}
+
+function applyAdjudication(
+  base: InsightPayload,
+  adjudicated: Record<string, unknown> | null,
+  messages: Array<{ role: string; content: string }>
+): InsightPayload {
+  const allowedPaths = new Set(["pause", "downgrade", "fix_and_followup", "concierge_onboarding", "offboard_gracefully"]);
+  const allowedCategories = new Set(["pricing", "product_fit", "competition", "support", "reliability", "lifecycle", "other"]);
+
+  if (!adjudicated) return applyHardSafetyOverrides(base, messages);
+
+  const next: InsightPayload = { ...base };
+  const maybePath = String(adjudicated.retention_path ?? "").trim();
+  const maybeCategory = String(adjudicated.category ?? "").trim();
+
+  if (allowedPaths.has(maybePath)) next.retention_path = maybePath;
+  if (allowedCategories.has(maybeCategory)) next.category = maybeCategory;
+  if (typeof adjudicated.salvageable === "boolean") next.salvageable = adjudicated.salvageable;
+
+  return applyHardSafetyOverrides(next, messages);
+}
+
+async function adjudicateInsightWithAI(
+  base: InsightPayload,
+  messages: Array<{ role: string; content: string }>,
+  anthropicApiKey: string
+): Promise<InsightPayload> {
+  const transcript = messages
+    .filter((m) => String(m.content ?? "").trim().toLowerCase() !== "start")
+    .map((m) => `${m.role.toUpperCase()}: ${String(m.content ?? "").trim()}`)
+    .join("\n");
+
+  const prompt = `You are a strict retention-path adjudicator for cancellation interviews.
+Given the transcript and draft insight, output ONLY valid JSON with:
+{
+  "retention_path": "pause|downgrade|fix_and_followup|concierge_onboarding|offboard_gracefully",
+  "salvageable": true|false,
+  "category": "pricing|product_fit|competition|support|reliability|lifecycle|other",
+  "reason": "one short sentence"
+}
+
+Rules:
+- Choose the best path based on semantic meaning of the transcript, not exact keywords.
+- If issue is reliability/performance/bug and support has no timeline, prefer fix_and_followup.
+- If cancellation is temporary budget/project pause, prefer pause.
+- Use offboard_gracefully only when clearly unsalvageable (shutdown, permanent switch, no future need).
+- Output JSON only. No markdown.
+
+Transcript:
+${transcript}
+
+Draft insight:
+${JSON.stringify(base)}`;
+
+  try {
+    const resp = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "x-api-key": anthropicApiKey,
+        "anthropic-version": "2023-06-01",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "claude-haiku-4-5-20251001",
+        max_tokens: 300,
+        messages: [{ role: "user", content: prompt }],
+        stream: false,
+      }),
+    });
+
+    if (!resp.ok) {
+      const t = await resp.text();
+      console.error("Adjudication AI error:", resp.status, t);
+      return applyHardSafetyOverrides(base, messages);
+    }
+
+    const json = await resp.json();
+    const text = Array.isArray(json?.content)
+      ? json.content
+          .filter((c: Record<string, unknown>) => c?.type === "text")
+          .map((c: Record<string, unknown>) => String(c?.text ?? ""))
+          .join("")
+      : "";
+    const maybeObject = extractFirstJsonObject(text);
+    if (!maybeObject) return applyHardSafetyOverrides(base, messages);
+
+    const adjudicated = JSON.parse(maybeObject) as Record<string, unknown>;
+    return applyAdjudication(base, adjudicated, messages);
+  } catch (e) {
+    console.error("Adjudication fallback to base insight:", e);
+    return applyHardSafetyOverrides(base, messages);
+  }
 }
 
 function buildRetentionCloseMessage(insight: InsightPayload): string {
@@ -421,8 +557,13 @@ function looksLikeCloseWithoutCompletion(text: string): boolean {
   return closeSignals.some((signal) => lower.includes(signal));
 }
 
-function forceFinalTranscript(rawText: string, messages: Array<{ role: string; content: string }>): { text: string; insight: InsightPayload } {
-  const insight = normalizeInsightPayload(parseInsight(rawText), messages);
+async function forceFinalTranscript(
+  rawText: string,
+  messages: Array<{ role: string; content: string }>,
+  anthropicApiKey: string
+): Promise<{ text: string; insight: InsightPayload }> {
+  const normalized = normalizeInsightPayload(parseInsight(rawText), messages);
+  const insight = await adjudicateInsightWithAI(normalized, messages, anthropicApiKey);
   const visible = buildRetentionCloseMessage(insight);
 
   const text =
@@ -824,7 +965,7 @@ serve(async (req) => {
         }
         try {
           const geminiText = await geminiNonStreaming(forcedPrompt, messages, 1024, GEMINI_API_KEY);
-          const { text: finalText, insight } = forceFinalTranscript(geminiText, messages);
+          const { text: finalText, insight } = await forceFinalTranscript(geminiText, messages, ANTHROPIC_API_KEY);
           await saveInsight(supabase, accountId, insight, messages, userContext, insightId);
           return new Response(textToAnthropicSSE(finalText), {
             headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
@@ -846,7 +987,7 @@ serve(async (req) => {
             .join("")
         : "";
 
-      const { text: finalText, insight } = forceFinalTranscript(generatedText, messages);
+      const { text: finalText, insight } = await forceFinalTranscript(generatedText, messages, ANTHROPIC_API_KEY);
       const savedId = await saveInsight(supabase, accountId, insight, messages, userContext, insightId);
       void deliverRealtimeNotifications(supabase, accountId, savedId, insight).catch((e) => {
         console.error("Notification dispatch error:", e);
@@ -886,7 +1027,7 @@ serve(async (req) => {
               const shouldCompleteGeminiNow =
                 geminiText.includes("[INTERVIEW_COMPLETE]") || looksLikeCloseWithoutCompletion(geminiText);
               if (shouldCompleteGeminiNow) {
-                const { text: finalText, insight } = forceFinalTranscript(geminiText, messages);
+                const { text: finalText, insight } = await forceFinalTranscript(geminiText, messages, ANTHROPIC_API_KEY);
                 const savedId = await saveInsight(supabase, accountId, insight, messages, userContext, insightId);
                 void deliverRealtimeNotifications(supabase, accountId, savedId, insight).catch((e) => {
                   console.error("Notification dispatch error:", e);
@@ -921,7 +1062,7 @@ serve(async (req) => {
         generatedText.includes("[INTERVIEW_COMPLETE]") || looksLikeCloseWithoutCompletion(generatedText);
 
       if (shouldCompleteNow) {
-        const { text: finalText, insight } = forceFinalTranscript(generatedText, messages);
+        const { text: finalText, insight } = await forceFinalTranscript(generatedText, messages, ANTHROPIC_API_KEY);
         const savedId = await saveInsight(supabase, accountId, insight, messages, userContext, insightId);
         void deliverRealtimeNotifications(supabase, accountId, savedId, insight).catch((e) => {
           console.error("Notification dispatch error:", e);
