@@ -287,6 +287,8 @@ FLOW:
 - For "technical issues": what broke, how often, how bad?
 - If the customer asks a direct question, answer it directly before closing.
 - Never negotiate custom pricing; for downgrade, present the configured downgrade option only.
+- Never promise unreleased features, roadmap status, or delivery timelines.
+- If asked whether a feature is being built, be explicit that you cannot promise roadmap/timing in-chat, and offer early-access/waitlist updates when appropriate.
 
 ## Turn Guardrails
 ${turnRules}
@@ -664,7 +666,7 @@ function buildRetentionCloseMessage(insight: InsightPayload): string {
     return "We'll open a priority ticket for this issue and follow up with you directly on progress.";
   }
   if (path === "early_access") {
-    return "We're actively building this and can add you to early access so you get it first.";
+    return "We can't promise roadmap timing in-chat, but we can add you to early-access updates for this request.";
   }
   if (path === "concierge_onboarding") {
     return "We can run a concierge onboarding session so your team gets value faster.";
@@ -721,7 +723,7 @@ function latestUserAskedDirectQuestion(messages: Array<{ role: string; content: 
 function buildAnswerBeforeClose(path: string | null): string {
   switch (path) {
     case "early_access":
-      return "Good question. Yes, this capability is on our roadmap, and we can add you to early access as soon as it's available.";
+      return "Good question. I can't promise roadmap timing in-chat, but we can add you to early-access updates for this capability.";
     case "downgrade":
       return "Good question. We can move you to the lower-tier option so your cost drops while you keep the basics.";
     case "fix_and_followup":
@@ -731,7 +733,7 @@ function buildAnswerBeforeClose(path: string | null): string {
     case "pause":
       return "Good question. Yes, we can pause your renewal and keep your setup intact so you can resume later.";
     default:
-      return "Good question. We'll answer that directly and make sure you have a clear next step.";
+      return "Good question. I can't promise roadmap timelines in-chat, but I'll give you a clear next step based on your cancellation reason.";
   }
 }
 
@@ -761,6 +763,16 @@ function shouldCloseFromDecision(
   const confident = decision.confidence >= threshold;
   const questionGuardSatisfied = !userAskedQuestion || decision.answered_latest_user_question;
   return Boolean(decision.should_close_now && confident && questionGuardSatisfied);
+}
+
+const PROMISE_CLAIM_RE = /\b(?:we(?:'re| are)?\s+(?:building|shipping|launching|working on|rolling out)|on (?:the )?roadmap|coming soon|eta|in \d+\s*(?:days?|weeks?|months?)|will (?:ship|launch|add|have)|guarantee|definitely)\b/i;
+
+function sanitizeAssistantOutput(text: string): string {
+  if (!text) return text;
+  if (text.includes("[INTERVIEW_COMPLETE]")) return text;
+  const visible = stripControlBlocks(text);
+  if (!PROMISE_CLAIM_RE.test(visible)) return text;
+  return "I can't promise roadmap timelines or unreleased features in-chat, but I can log this request and add you to early-access updates. Is this missing capability the main reason you're cancelling?";
 }
 
 async function forceFinalTranscript(
@@ -1331,7 +1343,7 @@ serve(async (req) => {
               }
               const responseHeaders: Record<string, string> = { ...corsHeaders, "Content-Type": "text/event-stream" };
               if (insightId) responseHeaders["x-insight-id"] = insightId;
-              return new Response(textToAnthropicSSE(geminiText), { headers: responseHeaders });
+              return new Response(textToAnthropicSSE(sanitizeAssistantOutput(geminiText)), { headers: responseHeaders });
             } catch (geminiErr) {
               console.error("Gemini fallback failed (non-stream branch):", geminiErr);
             }
@@ -1395,7 +1407,7 @@ serve(async (req) => {
 
       const responseHeaders: Record<string, string> = { ...corsHeaders, "Content-Type": "text/event-stream" };
       if (insightId) responseHeaders["x-insight-id"] = insightId;
-      return new Response(textToAnthropicSSE(generatedText), { headers: responseHeaders });
+      return new Response(textToAnthropicSSE(sanitizeAssistantOutput(generatedText)), { headers: responseHeaders });
     }
 
     const aiResponse = await fetch("https://api.anthropic.com/v1/messages", {
@@ -1425,7 +1437,7 @@ serve(async (req) => {
               const insight = normalizeInsightPayload(parseInsight(geminiText), messages);
               await saveInsight(supabase, accountId, insight, messages, userContext, insightId);
             }
-            return new Response(textToAnthropicSSE(geminiText), {
+            return new Response(textToAnthropicSSE(sanitizeAssistantOutput(geminiText)), {
               headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
             });
           } catch (geminiErr) {
