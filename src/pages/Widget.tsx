@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
 import { InterviewChat } from "@/components/InterviewChat";
 import { SurveyChat } from "@/components/SurveyChat";
 import { TypeformChat } from "@/components/TypeformChat";
@@ -20,15 +19,20 @@ interface WidgetConfig {
 }
 
 export default function Widget() {
-  const [searchParams] = useSearchParams();
-  const apiKey = searchParams.get("key") ?? "";
+  const legacyApiKey = new URLSearchParams(window.location.search).get("key") ?? "";
+  const [apiKey, setApiKey] = useState(legacyApiKey);
   const [config, setConfig] = useState<WidgetConfig | null>(null);
   const [userContext, setUserContext] = useState<UserContext | null>(null);
+  const [widgetInitialized, setWidgetInitialized] = useState(Boolean(legacyApiKey));
 
   useEffect(() => {
     function handleMessage(e: MessageEvent) {
       if (e.data && e.data.type === "lastword:init") {
+        if (typeof e.data.apiKey === "string" && e.data.apiKey.trim()) {
+          setApiKey(e.data.apiKey.trim());
+        }
         setUserContext(e.data.userContext ?? null);
+        setWidgetInitialized(true);
       }
     }
     window.addEventListener("message", handleMessage);
@@ -50,6 +54,14 @@ export default function Widget() {
 
   function handleInsight(insight: Insight) {
     window.parent.postMessage({ type: "lastword:complete", insight }, "*");
+  }
+
+  if (!widgetInitialized) {
+    return (
+      <div className="h-screen bg-background flex items-center justify-center">
+        <p className="text-sm text-muted-foreground">Initializing widget...</p>
+      </div>
+    );
   }
 
   if (!apiKey) {
@@ -113,7 +125,7 @@ export default function Widget() {
           <TypeformChat
             onInsight={handleInsight}
             apiKey={apiKey}
-            autoStart={userContext !== null}
+            autoStart={widgetInitialized}
             primaryColor={primaryColor}
             buttonColor={buttonColor}
             fontFamily={fontFamily}
@@ -123,7 +135,7 @@ export default function Widget() {
           <SurveyChat
             onInsight={handleInsight}
             apiKey={apiKey}
-            autoStart={userContext !== null}
+            autoStart={widgetInitialized}
             primaryColor={primaryColor}
             buttonColor={buttonColor}
             fontFamily={fontFamily}
@@ -133,7 +145,7 @@ export default function Widget() {
           <InterviewChat
             onInsight={handleInsight}
             apiKey={apiKey}
-            autoStart={userContext !== null}
+            autoStart={widgetInitialized}
             fullHeight
             primaryColor={primaryColor}
             buttonColor={buttonColor}

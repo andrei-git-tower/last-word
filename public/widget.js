@@ -2,17 +2,18 @@
   const script = document.currentScript;
   const apiKey = script.getAttribute("data-api-key") || "";
   const baseUrl = script.src.replace(/\/widget\.js.*$/, "");
+  const widgetOrigin = new URL(baseUrl, window.location.href).origin;
 
   let backdrop = null;
   let iframe = null;
   let iframeLoaded = false;
   let pendingUserContext = null;
 
-  function sendUserContext() {
+  function sendInit() {
     if (iframeLoaded && iframe) {
       iframe.contentWindow.postMessage(
-        { type: "lastword:init", userContext: pendingUserContext },
-        "*"
+        { type: "lastword:init", apiKey: apiKey, userContext: pendingUserContext },
+        widgetOrigin
       );
     }
   }
@@ -53,7 +54,7 @@
     closeBtn.onclick = close;
 
     iframe = document.createElement("iframe");
-    iframe.src = baseUrl + "/widget?key=" + encodeURIComponent(apiKey);
+    iframe.src = baseUrl + "/widget";
     Object.assign(iframe.style, {
       width: "min(408px, calc(100vw - 32px))",
       height: "min(527px, calc(100vh - 64px))",
@@ -65,7 +66,7 @@
 
     iframe.addEventListener("load", function () {
       iframeLoaded = true;
-      sendUserContext();
+      sendInit();
     });
 
     backdrop.appendChild(closeBtn);
@@ -78,7 +79,7 @@
     if (!backdrop) {
       createOverlay();
     } else {
-      sendUserContext();
+      sendInit();
     }
     backdrop.style.visibility = "visible";
     backdrop.style.pointerEvents = "auto";
@@ -92,6 +93,8 @@
 
   // Close when interview completes
   window.addEventListener("message", function (e) {
+    if (!iframe || e.source !== iframe.contentWindow) return;
+    if (e.origin !== widgetOrigin) return;
     if (e.data && e.data.type === "lastword:complete") {
       // Fire a host-page event so the customer can react (e.g. proceed with cancellation)
       try {
