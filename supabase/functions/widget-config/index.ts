@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { checkSoftRateLimit, getClientIp } from "../_shared/security.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -38,10 +39,35 @@ serve(async (req) => {
       });
     }
 
+    const accountId = account.id as string;
+    const clientIp = getClientIp(req);
+    const accountRate = checkSoftRateLimit(`widget-config:acct:${accountId}`, 300, 60_000);
+    if (!accountRate.allowed) {
+      return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again shortly." }), {
+        status: 429,
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+          "Retry-After": String(accountRate.retryAfterSec),
+        },
+      });
+    }
+    const ipRate = checkSoftRateLimit(`widget-config:ip:${clientIp}`, 240, 60_000);
+    if (!ipRate.allowed) {
+      return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again shortly." }), {
+        status: 429,
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+          "Retry-After": String(ipRate.retryAfterSec),
+        },
+      });
+    }
+
     const { data: config } = await supabase
       .from("configs")
       .select("brand_primary_color, brand_button_color, brand_font, brand_logo_url, product_name, widget_subtitle, widget_style")
-      .eq("account_id", account.id)
+      .eq("account_id", accountId)
       .maybeSingle();
 
     return new Response(

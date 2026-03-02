@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { geminiNonStreaming } from "../_shared/gemini.ts";
+import { checkSoftRateLimit, getClientIp, sanitizePromptText } from "../_shared/security.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -65,6 +66,29 @@ serve(async (req) => {
     }
 
     const accountId = account.id as string;
+    const clientIp = getClientIp(req);
+    const accountRate = checkSoftRateLimit(`analyze-brand:acct:${accountId}`, 30, 60_000);
+    if (!accountRate.allowed) {
+      return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again shortly." }), {
+        status: 429,
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+          "Retry-After": String(accountRate.retryAfterSec),
+        },
+      });
+    }
+    const ipRate = checkSoftRateLimit(`analyze-brand:ip:${clientIp}`, 20, 60_000);
+    if (!ipRate.allowed) {
+      return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again shortly." }), {
+        status: 429,
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+          "Retry-After": String(ipRate.retryAfterSec),
+        },
+      });
+    }
 
     const { scraped_content } = await req.json();
     if (!scraped_content || typeof scraped_content !== "string") {
@@ -74,7 +98,8 @@ serve(async (req) => {
       });
     }
 
-    console.log("[analyze-brand] scraped_content length:", scraped_content.length);
+    const safeScrapedContent = sanitizePromptText(scraped_content, 25_000);
+    console.log("[analyze-brand] scraped_content length:", safeScrapedContent.length);
 
     const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
     if (!ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is not configured");
@@ -93,7 +118,7 @@ serve(async (req) => {
         messages: [
           {
             role: "user",
-            content: `${BRAND_ANALYSIS_PROMPT}\n\n${scraped_content}`,
+            content: `${BRAND_ANALYSIS_PROMPT}\n\n${safeScrapedContent}`,
           },
         ],
       }),
@@ -118,7 +143,7 @@ serve(async (req) => {
       try {
         brand_prompt = (await geminiNonStreaming(
           "You are an expert brand strategist.",
-          [{ role: "user", content: `${BRAND_ANALYSIS_PROMPT}\n\n${scraped_content}` }],
+          [{ role: "user", content: `${BRAND_ANALYSIS_PROMPT}\n\n${safeScrapedContent}` }],
           256,
           GEMINI_API_KEY
         )).trim();
@@ -134,6 +159,7 @@ serve(async (req) => {
       brand_prompt = aiJson?.content?.[0]?.text?.trim() ?? "";
     }
 
+    brand_prompt = sanitizePromptText(brand_prompt, 1200);
     console.log("[analyze-brand] brand_prompt generated, length:", brand_prompt.length);
 
     if (!brand_prompt) {

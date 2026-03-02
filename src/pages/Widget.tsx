@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { InterviewChat } from "@/components/InterviewChat";
 import { SurveyChat } from "@/components/SurveyChat";
 import { TypeformChat } from "@/components/TypeformChat";
@@ -24,10 +24,24 @@ export default function Widget() {
   const [config, setConfig] = useState<WidgetConfig | null>(null);
   const [userContext, setUserContext] = useState<UserContext | null>(null);
   const [widgetInitialized, setWidgetInitialized] = useState(Boolean(legacyApiKey));
+  const [trustedParentOrigin, setTrustedParentOrigin] = useState<string | null>(null);
+  const trustedParentOriginRef = useRef<string | null>(null);
+  const trustedParentWindowRef = useRef<Window | null>(null);
 
   useEffect(() => {
     function handleMessage(e: MessageEvent) {
       if (e.data && e.data.type === "lastword:init") {
+        if (trustedParentWindowRef.current && e.source !== trustedParentWindowRef.current) return;
+        if (trustedParentOriginRef.current && e.origin !== trustedParentOriginRef.current) return;
+        if (typeof e.data.parentOrigin === "string" && e.data.parentOrigin !== e.origin) return;
+
+        if (!trustedParentWindowRef.current && e.source && "postMessage" in (e.source as object)) {
+          trustedParentWindowRef.current = e.source as Window;
+        }
+        if (!trustedParentOriginRef.current) {
+          trustedParentOriginRef.current = e.origin;
+          setTrustedParentOrigin(e.origin);
+        }
         if (typeof e.data.apiKey === "string" && e.data.apiKey.trim()) {
           setApiKey(e.data.apiKey.trim());
         }
@@ -53,7 +67,8 @@ export default function Widget() {
   }, [apiKey]);
 
   function handleInsight(insight: Insight) {
-    window.parent.postMessage({ type: "lastword:complete", insight }, "*");
+    const targetOrigin = trustedParentOrigin ?? "*";
+    window.parent.postMessage({ type: "lastword:complete", insight }, targetOrigin);
   }
 
   if (!widgetInitialized) {

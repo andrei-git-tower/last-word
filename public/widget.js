@@ -12,7 +12,12 @@
   function sendInit() {
     if (iframeLoaded && iframe) {
       iframe.contentWindow.postMessage(
-        { type: "lastword:init", apiKey: apiKey, userContext: pendingUserContext },
+        {
+          type: "lastword:init",
+          apiKey: apiKey,
+          userContext: pendingUserContext,
+          parentOrigin: window.location.origin,
+        },
         widgetOrigin
       );
     }

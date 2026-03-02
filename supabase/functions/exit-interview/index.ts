@@ -1,6 +1,12 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { geminiNonStreaming } from "../_shared/gemini.ts";
+import {
+  checkSoftRateLimit,
+  getClientIp,
+  sanitizePromptText,
+  validateWebhookTargetUrl,
+} from "../_shared/security.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -112,6 +118,20 @@ function buildUserContextBlock(ctx: UserContext | null | undefined): string {
   if (guidance) lines.push("", `Guidance: ${guidance}`);
 
   return lines.join("\n");
+}
+
+function sanitizeUserContext(ctx: UserContext | null): UserContext | null {
+  if (!ctx) return null;
+  const accountAge = Number(ctx.account_age);
+  const seats = Number(ctx.seats);
+  const mrr = Number(ctx.mrr);
+  return {
+    email: sanitizePromptText(ctx.email, 200) || undefined,
+    plan: sanitizePromptText(ctx.plan, 100) || undefined,
+    account_age: Number.isFinite(accountAge) ? Math.max(0, Math.floor(accountAge)) : undefined,
+    seats: Number.isFinite(seats) ? Math.max(0, Math.floor(seats)) : undefined,
+    mrr: Number.isFinite(mrr) ? Math.max(0, Math.floor(mrr)) : undefined,
+  };
 }
 
 function buildRetentionSection(paths: RetentionPathConfig): string {
@@ -750,6 +770,8 @@ async function deliverRealtimeNotifications(
   if (rows.length === 0) return;
 
   const event = buildNotificationEvent(accountId, insightId, insight);
+  const allowPrivateTargets = Deno.env.get("ALLOW_PRIVATE_WEBHOOK_TARGETS") === "true";
+  const allowInsecureHttp = Deno.env.get("ALLOW_INSECURE_WEBHOOK_TARGETS") === "true";
 
   for (const endpoint of rows) {
     const bodyObject =
@@ -774,6 +796,21 @@ async function deliverRealtimeNotifications(
 
     if (insertDeliveryError || !delivery?.id) {
       console.error("Failed to create delivery row:", insertDeliveryError);
+      continue;
+    }
+
+    const targetValidation = validateWebhookTargetUrl(endpoint.target_url, {
+      allowPrivateTargets,
+      allowInsecureHttp,
+    });
+    if (!targetValidation.allowed) {
+      await supabase
+        .from("notification_deliveries")
+        .update({
+          status: "failed",
+          error_message: `Blocked target URL: ${targetValidation.reason ?? "policy"}`,
+        })
+        .eq("id", delivery.id);
       continue;
     }
 
@@ -867,6 +904,30 @@ serve(async (req) => {
     }
 
     const accountId = account.id as string;
+    const clientIp = getClientIp(req);
+
+    const accountRate = checkSoftRateLimit(`exit:acct:${accountId}`, 240, 60_000);
+    if (!accountRate.allowed) {
+      return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again shortly." }), {
+        status: 429,
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+          "Retry-After": String(accountRate.retryAfterSec),
+        },
+      });
+    }
+    const ipRate = checkSoftRateLimit(`exit:ip:${clientIp}`, 180, 60_000);
+    if (!ipRate.allowed) {
+      return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again shortly." }), {
+        status: 429,
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+          "Retry-After": String(ipRate.retryAfterSec),
+        },
+      });
+    }
 
     // Load config
     const { data: configRow, error: configError } = await supabase
@@ -877,7 +938,7 @@ serve(async (req) => {
 
     const body = await req.json();
     const rawMessages = body.messages;
-    const userContext: UserContext | null = body.userContext ?? null;
+    const userContext: UserContext | null = sanitizeUserContext(body.userContext ?? null);
     let insightId: string | null = body.insightId ?? null;
     const messages = rawMessages.length > 0 ? rawMessages : [{ role: "user", content: "start" }];
     const userTurns = countUserTurns(messages);
